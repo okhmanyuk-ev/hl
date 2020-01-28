@@ -8,7 +8,6 @@
 #include "wadfile.h"
 
 #include <glm/glm.hpp>
-#include <Common/buffer.h>
 
 // header
 #define Q1BSP_VERSION		29		// quake1 regular version (beta is 28)

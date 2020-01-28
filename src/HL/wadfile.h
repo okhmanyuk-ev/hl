@@ -6,7 +6,7 @@
 #include <fstream>
 #include <vector>
 
-#include <Common/buffer.h>
+#include <Common/bitbuffer.h>
 #include <Platform/asset.h>
 
 typedef struct wadmiptex_s
@@ -52,26 +52,25 @@ public:
 	{
 		auto asset = Platform::Asset(fileName);
 		
-		m_Buffer.write(asset.getMemory(), asset.getSize());
-		m_Buffer.toStart();
+		mBuffer.write(asset.getMemory(), asset.getSize());
+		mBuffer.toStart();
 
 		// header
 
-		auto header = m_Buffer.read<wadinfo_t>();
+		auto header = mBuffer.read<wadinfo_t>();
 		
-		m_Buffer.setPosition(header.infotableofs);
+		mBuffer.setPosition(header.infotableofs);
 		
 		for (int i = 0; i < header.numlumps; i++)
 		{
-			auto lump = m_Buffer.read<lumpinfo_t>();
-
-			m_Lumps.push_back(lump);
+			auto lump = mBuffer.read<lumpinfo_t>();
+			mLumps.push_back(lump);
 		}
 	}
 
 	lumpinfo_t* findLump(std::string_view name)
 	{
-		for (auto& lump : m_Lumps)
+		for (auto& lump : mLumps)
 		{
 			if (lump.name != name)
 				continue;
@@ -83,10 +82,10 @@ public:
 	}
 
 public:
-	auto& getLumps() { return m_Lumps; }
-	auto& getBuffer() { return m_Buffer; }
+	auto& getLumps() { return mLumps; }
+	auto& getBuffer() { return mBuffer; }
 
 private:
-	std::vector<lumpinfo_t> m_Lumps;
-	Common::Buffer m_Buffer;
+	std::vector<lumpinfo_t> mLumps;
+	Common::BitBuffer mBuffer;
 };

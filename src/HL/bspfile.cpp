@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <sstream>
 #include <Console/system.h>
+#include <Common/bitbuffer.h>
 
 std::string* BSPFile::Entity::getValueOf(std::string_view field)
 {
@@ -19,7 +20,7 @@ std::string* BSPFile::Entity::getValueOf(std::string_view field)
 
 void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 {
-	Common::Buffer bf;
+	Common::BitBuffer bf;
 	auto asset = Platform::Asset(fileName);
 
 	bf.write(asset.getMemory(), asset.getSize());
