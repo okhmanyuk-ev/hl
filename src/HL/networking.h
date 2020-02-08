@@ -31,7 +31,7 @@ namespace HL
 		auto& getSocket() { return mSocket; }
 
 	private:
-		Network::Socket& mSocket;
+		Network::Socket* mSocket;
 
 	private:
 		struct Fragment

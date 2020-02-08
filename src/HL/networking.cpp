@@ -6,7 +6,7 @@ namespace HL
 	Networking::Networking(uint16_t port) : 
 		mSocket(NETWORK->createSocket(port))
 	{
-		mSocket.setReadCallback([this](Network::Packet& packet) { 
+		mSocket->setReadCallback([this](Network::Packet& packet) { 
 			readPacket(packet); 
 		});
 	}
@@ -122,7 +122,7 @@ namespace HL
 
 	void Networking::sendPacket(Network::Packet& packet)
 	{
-		mSocket.sendPacket(packet);
+		mSocket->sendPacket(packet);
 	}
 
 	void Networking::sendConnectionlessPacket(Network::Packet& packet)
@@ -134,6 +134,6 @@ namespace HL
 
 		Common::BufferHelpers::WriteToBuffer(packet.buf, pack.buf);
 
-		mSocket.sendPacket(pack); 
+		mSocket->sendPacket(pack);
 	}
 }

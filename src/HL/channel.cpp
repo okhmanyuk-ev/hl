@@ -8,7 +8,7 @@
 
 using namespace HL;
 
-Channel::Channel(Network::Socket& socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) : 
+Channel::Channel(Network::Socket* socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) : 
 	mSocket(socket),
 		
 	mReadHandler(readHandler), 
@@ -100,7 +100,7 @@ void Channel::transmit()
 		
 	Common::BufferHelpers::WriteToBuffer(msg, pack.buf);
 
-	mSocket.sendPacket(pack);
+	mSocket->sendPacket(pack);
 }
 
 void Channel::writeReliableMessages(Common::BitBuffer& msg)

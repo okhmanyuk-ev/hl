@@ -18,7 +18,7 @@ namespace HL
 		typedef std::function<void(const std::string& name, Common::BitBuffer& buf)> FileHandler;
 
 	public:
-		Channel(Network::Socket& socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
+		Channel(Network::Socket* socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
 		~Channel();
 
 	public:
@@ -46,7 +46,7 @@ namespace HL
 		void setAddress(Network::Address value) { mAddress = value; }
 
 	private:
-		Network::Socket& mSocket;
+		Network::Socket* mSocket;
 		Network::Address mAddress;
 		
 	public:
