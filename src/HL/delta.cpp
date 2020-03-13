@@ -8,12 +8,12 @@ using namespace HL;
 
 namespace
 {
-	template <class Tx, class Ty>
-	bool ReadResultValue(const Delta::ReadResult& result, const std::string& name, Ty& value) {
+	template <class T, class U>
+	bool ReadResultValue(const Delta::ReadResult& result, const std::string& name, U& value) {
 		if (result.count(name) == 0)
 			return false;
 
-		value = std::get<Tx>(result.at(name));
+		value = std::get<T>(result.at(name));
 		return true;
 	};
 
