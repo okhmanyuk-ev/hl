@@ -86,8 +86,5 @@ namespace HL
 
 	private:
 		std::unordered_map<std::string, Table> mTables;
-
-	private:
-		static const Table MetaDescription;
 	};
 }

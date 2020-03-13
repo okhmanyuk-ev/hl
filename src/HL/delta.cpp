@@ -16,18 +16,17 @@ namespace
 		value = std::get<Tx>(result.at(name));
 		return true;
 	};
-}
 
-const Delta::Table Delta::MetaDescription =
-{
-	{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
-	{ "fieldName", DT_STRING, },
-	{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
-	{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
-	{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
-	{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
-	{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
-};
+	const Delta::Table MetaDescription = {
+		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
+		{ "fieldName", DT_STRING, },
+		{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
+		{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
+		{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
+		{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
+		{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
+	};
+}
 
 void Delta::clear()
 {
