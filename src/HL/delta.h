@@ -7,6 +7,7 @@
 #include <variant>
 #include <optional>
 #include <unordered_map>
+#include <map>
 
 #include <common/bitbuffer.h>
 #include "protocol.h"
@@ -39,27 +40,20 @@ namespace HL
 		{
 			std::string name;
 			int type;
-		//	int size;
 			int bits;
 			float scale;
 			float pscale;
-		//	int offset;
+			int size; // unused
+			int offset; // unused
 		};
 
-		using Table = std::list<Field>;
+		using Table = std::vector<Field>;
 
-		using ReadResultField =	std::variant<int64_t, float, std::string>;
-		using ReadResult = std::unordered_map<std::string, ReadResultField>;
+		using ReadField =	std::variant<int64_t, float, std::string>;
+		using ReadFields = std::unordered_map<std::string, ReadField>;
 
-		struct WriteField
-		{
-			int index;
-			int valueInt;
-			float valueFloat;
-			std::string valueStr;
-		};
-
-		typedef std::list<WriteField> WriteFields;
+		using WriteField =  std::variant<int64_t, float, std::string>;
+		using WriteFields = std::map<int, WriteField>;
 
 	public:
 		void clear();
@@ -80,9 +74,8 @@ namespace HL
 		void read(Common::BitBuffer& msg, Field& field);
 
 	private:
-		ReadResult read(Common::BitBuffer& msg, const Table& table);
-
-		void write(Common::BitBuffer& msg, const Table& table, const WriteFields& writeFields);
+		ReadFields read(Common::BitBuffer& msg, const Table& table);
+		void write(Common::BitBuffer& msg, const Table& table, const WriteFields& fields);
 
 	private:
 		std::unordered_map<std::string, Table> mTables;

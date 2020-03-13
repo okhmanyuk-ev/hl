@@ -9,22 +9,12 @@ using namespace HL;
 namespace
 {
 	template <class T, class U>
-	bool ReadResultValue(const Delta::ReadResult& result, const std::string& name, U& value) {
-		if (result.count(name) == 0)
+	bool ReadResultValue(const Delta::ReadFields& fields, const std::string& name, U& value) {
+		if (fields.count(name) == 0)
 			return false;
 
-		value = std::get<T>(result.at(name));
+		value = std::get<T>(fields.at(name));
 		return true;
-	};
-
-	const Delta::Table MetaDescription = {
-		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
-		{ "fieldName", DT_STRING, },
-		{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
-		{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
-		{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
-		{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
-		{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
 	};
 }
 
@@ -53,28 +43,26 @@ void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldC
 	mTables.insert({ name, table });
 }
 
-Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
+Delta::ReadFields Delta::read(Common::BitBuffer& msg, const Table& table)
 {
 	uint64_t marks = 0;
 	uint32_t count = msg.readBits(3);
 
 	msg.read(&marks, count);
 		
-	ReadResult result;
+	ReadFields result;
 
-	int i = -1;
-
-	for (auto& field : table)
+	for (int i = 0; i < table.size(); i++)
 	{
-		i++;
-
 		if (!(marks & (1ULL << i)))
 			continue;
+		
+		const auto& field = table.at(i);
 
 		bool sign = field.type & DT_SIGNED;
 		int type = field.type & ~DT_SIGNED;
 
-		ReadResultField resultField;
+		ReadField resultField;
 
 		switch (type)
 		{
@@ -132,16 +120,16 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 	return result;
 }
 
-void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields& writeFields)
+void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields& fields)
 {
 	uint64_t marks = 0;
 	
 	int lastMark = -1;
 
-	for (auto& field : writeFields)
+	for (const auto& [index, field] : fields)
 	{
-		marks |= 1ULL << field.index;
-		lastMark = field.index;
+		marks |= 1ULL << index;
+		lastMark = index;
 	}
 
 	uint32_t count = 0; 
@@ -152,12 +140,12 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 	msg.writeBits(count, 3);
 	msg.write(&marks, count);
 	
-	for (auto& field : writeFields)
+	for (const auto& [index, field] : fields)
 	{
-		auto normal = std::next(table.begin(), field.index);
+		const auto& normal = table.at(index);
 		
-		bool sign = normal->type & DT_SIGNED;
-		int type = normal->type & ~DT_SIGNED;
+		bool sign = normal.type & DT_SIGNED;
+		int type = normal.type & ~DT_SIGNED;
 
 		switch (type)
 		{
@@ -165,44 +153,41 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 		case DT_SHORT:
 		case DT_INTEGER:
 		{
-			assert(normal->scale == 1.0f);
-			assert(normal->pscale == 1.0f);
+			assert(normal.scale == 1.0f);
+			assert(normal.pscale == 1.0f);
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, field.valueInt, normal->bits);
+				Common::BufferHelpers::WriteSBits(msg, std::get<int64_t>(field), normal.bits);
 			else
-				msg.writeBits(field.valueInt, normal->bits);
+				msg.writeBits(std::get<int64_t>(field), normal.bits);
 		}
 		break;
 
 		case DT_TIMEWINDOW_8:
-			Common::BufferHelpers::WriteSBits(msg, (int)field.valueFloat, 8); // TODO: time fix
+			Common::BufferHelpers::WriteSBits(msg, (int)std::get<float>(field), 8); // TODO: time fix
 			break;
 
 		case DT_TIMEWINDOW_BIG:
 		case DT_FLOAT:
 		{
-			float value = field.valueFloat;
+			float value = std::get<float>(field);
 
-			if (normal->scale <= 0.9999 || normal->scale >= 1.0001)
-				value /= normal->scale;
-
-			if (normal->pscale <= 0.9999 || normal->pscale >= 1.0001)
-				value *= normal->pscale;
+			value /= normal.scale;
+			value *= normal.pscale;
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, (int32_t)value, normal->bits);
+				Common::BufferHelpers::WriteSBits(msg, (int32_t)value, normal.bits);
 			else
-				msg.writeBits((uint32_t)value, normal->bits);
+				msg.writeBits((uint32_t)value, normal.bits);
 		}
 		break;
 
 		case DT_ANGLE:
-			Common::BufferHelpers::WriteBitAngle(msg, field.valueFloat, normal->bits);
+			Common::BufferHelpers::WriteBitAngle(msg, std::get<float>(field), normal.bits);
 			break;
 
 		case DT_STRING:
-			Common::BufferHelpers::WriteString(msg, field.valueStr);
+			Common::BufferHelpers::WriteString(msg, std::get<std::string>(field));
 			break;
 
 		default:
@@ -214,7 +199,17 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 
 void Delta::read(Common::BitBuffer& msg, Field& field)
 {
-	auto result = read(msg, MetaDescription);
+	static const Delta::Table MetaTable = {
+		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
+		{ "fieldName", DT_STRING, },
+		{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
+		{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
+		{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
+		{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
+		{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
+	};
+
+	auto result = read(msg, MetaTable);
 
 #define READ_INT(X, Y) ReadResultValue<int64_t>(result, #X, field.Y)
 #define READ_FLOAT(X, Y) ReadResultValue<float>(result, #X, field.Y)
@@ -222,8 +217,8 @@ void Delta::read(Common::BitBuffer& msg, Field& field)
 
 	READ_INT(fieldType, type);
 	READ_STR(fieldName, name);
-	//READ_INT(fieldOffset, offset);
-	//READ_INT(fieldSize, size);
+	READ_INT(fieldOffset, offset);
+	READ_INT(fieldSize, size);
 	READ_INT(significant_bits, bits);
 	READ_FLOAT(premultiply, scale);
 	READ_FLOAT(postmultiply, pscale);
@@ -571,15 +566,11 @@ void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::st
 
 void Delta::writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
 {
+#define S_TOTAL(X, Y, T, A) if (field.name == #X && newCmd.Y != oldCmd.Y) { assert(A); writeFields.insert({ i, (T)newCmd.Y }); }
 
-#define S_CHECK(X, Y) if (f.name == #X && newCmd.Y != oldCmd.Y)
-#define S_PREPARE WriteField writeField; writeField.index = i;
-#define S_PUSH writeFields.push_back(writeField);
-#define S_TOTAL(X, Y, F, A) S_CHECK(X, Y) { assert(A); S_PREPARE writeField.F = newCmd.Y; S_PUSH }
-
-#define S_INT2(X, Y) S_TOTAL(X, Y, valueInt, type == DT_BYTE || type == DT_SHORT || type == DT_INTEGER)
-#define S_FLOAT2(X, Y) S_TOTAL(X, Y, valueFloat, type == DT_TIMEWINDOW_8 || type == DT_TIMEWINDOW_BIG || type == DT_FLOAT || type == DT_ANGLE)
-#define S_STR2(X, Y) S_TOTAL(X, Y, valueString, type == DT_STRING)
+#define S_INT2(X, Y) S_TOTAL(X, Y, int64_t, type == DT_BYTE || type == DT_SHORT || type == DT_INTEGER)
+#define S_FLOAT2(X, Y) S_TOTAL(X, Y, float, type == DT_TIMEWINDOW_8 || type == DT_TIMEWINDOW_BIG || type == DT_FLOAT || type == DT_ANGLE)
+#define S_STR2(X, Y) S_TOTAL(X, Y, std::string, type == DT_STRING)
 
 #define S_INT(X) S_INT2(X, X)
 #define S_FLOAT(X) S_FLOAT2(X, X)
@@ -597,14 +588,17 @@ void Delta::writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd
 
 	WriteFields writeFields;
 
-	int i = -1;
-
-	for (auto& f : table)
+	for (int i = 0; i < table.size(); i++)
 	{
-		int type = f.type & ~DT_SIGNED;
-		i++;
+		const auto& field = table.at(i);
+		int type = field.type & ~DT_SIGNED;
 		S_INT(lerp_msec)
-		C_INT(msec)
+		//C_INT(msec)
+		else if (field.name == "msec" && newCmd.msec != oldCmd.msec)
+		{
+			assert(type == DT_BYTE || type == DT_SHORT || type == DT_INTEGER);
+			writeFields.insert({ i, (int64_t)newCmd.msec });
+		}
 		C_FLOAT(viewangles[0])
 		C_FLOAT(viewangles[1])
 		C_FLOAT(viewangles[2])
