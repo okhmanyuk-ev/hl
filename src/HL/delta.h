@@ -34,7 +34,7 @@ namespace HL
 {
 	class Delta
 	{
-	private:
+	public:
 		struct Field
 		{
 			std::string name;
@@ -48,13 +48,8 @@ namespace HL
 
 		using Table = std::list<Field>;
 
-		struct ReadResultField
-		{
-			std::string name;
-			std::variant<int64_t, float, std::string> value;
-		};
-
-		using ReadResult = std::list<ReadResultField>;
+		using ReadResultField =	std::variant<int64_t, float, std::string>;
+		using ReadResult = std::unordered_map<std::string, ReadResultField>;
 
 		struct WriteField
 		{
@@ -94,6 +89,5 @@ namespace HL
 
 	private:
 		static const Table MetaDescription;
-
 	};
 }

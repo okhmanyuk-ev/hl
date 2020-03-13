@@ -6,6 +6,18 @@
 
 using namespace HL;
 
+namespace
+{
+	template <class Tx, class Ty>
+	bool ReadResultValue(const Delta::ReadResult& result, const std::string& name, Ty& value) {
+		if (result.count(name) == 0)
+			return false;
+
+		value = std::get<Tx>(result.at(name));
+		return true;
+	};
+}
+
 const Delta::Table Delta::MetaDescription =
 {
 	{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
@@ -65,8 +77,6 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 
 		ReadResultField resultField;
 
-		resultField.name = field.name;
-
 		switch (type)
 		{
 		case DT_BYTE:
@@ -74,9 +84,9 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 		case DT_INTEGER:
 		{
 			if (sign)
-				resultField.value = static_cast<int64_t>(Common::BufferHelpers::ReadSBits(msg, field.bits));
+				resultField = static_cast<int64_t>(Common::BufferHelpers::ReadSBits(msg, field.bits));
 			else
-				resultField.value = static_cast<int64_t>(msg.readBits(field.bits));
+				resultField = static_cast<int64_t>(msg.readBits(field.bits));
 
 			assert(field.scale == 1.0f);
 			assert(field.pscale == 1.0f);
@@ -85,7 +95,7 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 		break;
 
 		case DT_TIMEWINDOW_8:
-			resultField.value = static_cast<float>(Common::BufferHelpers::ReadSBits(msg, 8));
+			resultField = static_cast<float>(Common::BufferHelpers::ReadSBits(msg, 8));
 			break;
 
 		case DT_TIMEWINDOW_BIG:
@@ -101,15 +111,15 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 			value /= field.scale;
 			value *= field.pscale;
 
-			resultField.value = value;
+			resultField = value;
 			break;
 		}
 		case DT_ANGLE:
-			resultField.value = Common::BufferHelpers::ReadBitAngle(msg, field.bits);
+			resultField = Common::BufferHelpers::ReadBitAngle(msg, field.bits);
 			break;
 
 		case DT_STRING:
-			resultField.value = Common::BufferHelpers::ReadString(msg);
+			resultField = Common::BufferHelpers::ReadString(msg);
 			break;
 		
 		default:
@@ -117,7 +127,7 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 			break;
 		}
 
-		result.push_back(resultField);
+		result.insert({ field.name, resultField });
 	}
 
 	return result;
@@ -205,275 +215,207 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 
 void Delta::read(Common::BitBuffer& msg, Field& field)
 {
-#define S_INT(X, Y) if (f.name == #X) field.Y = std::get<int64_t>(f.value)
-#define S_FLOAT(X, Y) if (f.name == #X) field.Y = std::get<float>(f.value)
-#define S_STR(X, Y) if (f.name == #X) field.Y = std::get<std::string>(f.value)
-
-#define C_INT(X, Y) else S_INT(X, Y)
-#define C_FLOAT(X, Y) else S_FLOAT(X, Y)
-#define C_STR(X, Y) else S_STR(X, Y)
-
 	auto result = read(msg, MetaDescription);
 
-	for (auto& f : result)
-	{
-		S_INT(fieldType, type);
-		C_STR(fieldName, name);
-		//C_INT(fieldOffset, offset);
-		//C_INT(fieldSize, size);
-		C_INT(significant_bits, bits);
-		C_FLOAT(premultiply, scale);
-		C_FLOAT(postmultiply, pscale);
-	}
+#define READ_INT(X, Y) ReadResultValue<int64_t>(result, #X, field.Y)
+#define READ_FLOAT(X, Y) ReadResultValue<float>(result, #X, field.Y)
+#define READ_STR(X, Y) ReadResultValue<std::string>(result, #X, field.Y)
 
-#undef S_INT
-#undef S_FLOAT
-#undef S_STR
-
-#undef C_INT
-#undef C_FLOAT
-#undef C_STR
+	READ_INT(fieldType, type);
+	READ_STR(fieldName, name);
+	//READ_INT(fieldOffset, offset);
+	//READ_INT(fieldSize, size);
+	READ_INT(significant_bits, bits);
+	READ_FLOAT(premultiply, scale);
+	READ_FLOAT(postmultiply, pscale);
+	
+#undef READ_INT
+#undef READ_FLOAT
+#undef READ_STR
 }
 
 void Delta::readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientData)
 {
-#define S_INT2(X, Y) if (f.name == #X) clientData.Y = std::get<int64_t>(f.value);
-#define S_FLOAT2(X, Y) if (f.name == #X) clientData.Y = std::get<float>(f.value);
-#define S_STR2(X, Y) if (f.name == #X) clientData.Y = std::get<std::string>(f.value);
-
-#define C_INT2(X, Y) else S_INT2(X, Y)
-#define C_FLOAT2(X, Y) else S_FLOAT2(X, Y)
-#define C_STR2(X, Y) else S_STR2(X, Y)
-
-#define S_INT(X) S_INT2(X, X)
-#define S_FLOAT(X) S_FLOAT2(X, X) 
-#define S_STR(X) S_STR2(X, X)
-
-#define C_INT(X) C_INT2(X, X)
-#define C_FLOAT(X) C_FLOAT2(X, X)
-#define C_STR(X) S_STR2(X, X)
-
 	auto result = read(msg, mTables.at("clientdata_t"));
 
-	for (auto& f : result)
-	{
-		S_FLOAT(origin[0])
-		C_FLOAT(origin[1])
-		C_FLOAT(origin[2])
+#define READ_INT2(X, Y) ReadResultValue<int64_t>(result, #X, clientData.Y)
+#define READ_FLOAT2(X, Y) ReadResultValue<float>(result, #X, clientData.Y)
+#define READ_STR2(X, Y) ReadResultValue<std::string>(result, #X, clientData.Y)
+
+#define READ_INT(X) READ_INT2(X, X)
+#define READ_FLOAT(X) READ_FLOAT2(X, X)
+#define READ_STR(X) READ_STR2(X, X)
+
+	READ_FLOAT(origin[0]);
+	READ_FLOAT(origin[1]);
+	READ_FLOAT(origin[2]);
 	
-		C_FLOAT(velocity[0])
-		C_FLOAT(velocity[1])
-		C_FLOAT(velocity[2])
+	READ_FLOAT(velocity[0]);
+	READ_FLOAT(velocity[1]);
+	READ_FLOAT(velocity[2]);
 
-		C_INT(viewmodel)
+	READ_INT(viewmodel);
 	
-		C_FLOAT(punchangle[0])
-		C_FLOAT(punchangle[1])
-		C_FLOAT(punchangle[2])
+	READ_FLOAT(punchangle[0]);
+	READ_FLOAT(punchangle[1]);
+	READ_FLOAT(punchangle[2]);
 	
-		C_INT(flags)
-		C_INT(waterlevel)
-		C_INT(watertype)
+	READ_INT(flags);
+	READ_INT(waterlevel);
+	READ_INT(watertype);
 
-		C_FLOAT(view_ofs[0])
-		C_FLOAT(view_ofs[1])
-		C_FLOAT(view_ofs[2])
+	READ_FLOAT(view_ofs[0]);
+	READ_FLOAT(view_ofs[1]);
+	READ_FLOAT(view_ofs[2]);
 
-		C_FLOAT(health)
+	READ_FLOAT(health);
 
-		C_INT(bInDuck)
-		C_INT(weapons)
+	READ_INT(bInDuck);
+	READ_INT(weapons);
 
-		C_INT(flTimeStepSound)
-		C_INT(flDuckTime)
-		C_INT(flSwimTime)
-		C_INT(waterjumptime)
+	READ_INT(flTimeStepSound);
+	READ_INT(flDuckTime);
+	READ_INT(flSwimTime);
+	READ_INT(waterjumptime);
 
-		C_FLOAT(maxspeed)
-		C_FLOAT(fov)
+	READ_FLOAT(maxspeed);
+	READ_FLOAT(fov);
 
-		C_INT(weaponanim)
+	READ_INT(weaponanim);
 	
-		C_INT(m_iId)
-		C_INT(ammo_shells)
-		C_INT(ammo_nails)
-		C_INT(ammo_cells)
-		C_INT(ammo_rockets)
-		C_FLOAT(m_flNextAttack)
+	READ_INT(m_iId);
+	READ_INT(ammo_shells);
+	READ_INT(ammo_nails);
+	READ_INT(ammo_cells);
+	READ_INT(ammo_rockets);
+	READ_FLOAT(m_flNextAttack);
 
-		C_INT(tfstate)
+	READ_INT(tfstate);
 	
-		C_INT(pushmsec)
+	READ_INT(pushmsec);
 
-		C_INT(deadflag)
+	READ_INT(deadflag);
 	
-		C_STR(physinfo)
+	READ_STR(physinfo);
 
-		C_INT(iuser1)
-		C_INT(iuser2)
-		C_INT(iuser3)
-		C_INT(iuser4)
+	READ_INT(iuser1);
+	READ_INT(iuser2);
+	READ_INT(iuser3);
+	READ_INT(iuser4);
 
-		C_FLOAT(fuser1)
-		C_FLOAT(fuser2)
-		C_FLOAT(fuser3)
-		C_FLOAT(fuser4)
+	READ_FLOAT(fuser1);
+	READ_FLOAT(fuser2);
+	READ_FLOAT(fuser3);
+	READ_FLOAT(fuser4);
 
-		C_FLOAT(vuser1[0])
-		C_FLOAT(vuser1[1])
-		C_FLOAT(vuser1[2])
+	READ_FLOAT(vuser1[0]);
+	READ_FLOAT(vuser1[1]);
+	READ_FLOAT(vuser1[2]);
 
-		C_FLOAT(vuser2[0])
-		C_FLOAT(vuser2[1])
-		C_FLOAT(vuser2[2])
+	READ_FLOAT(vuser2[0]);
+	READ_FLOAT(vuser2[1]);
+	READ_FLOAT(vuser2[2]);
 
-		C_FLOAT(vuser3[0])
-		C_FLOAT(vuser3[1])
-		C_FLOAT(vuser3[2])
+	READ_FLOAT(vuser3[0]);
+	READ_FLOAT(vuser3[1]);
+	READ_FLOAT(vuser3[2]);
 
-		C_FLOAT(vuser4[0])
-		C_FLOAT(vuser4[1])
-		C_FLOAT(vuser4[2])
-	};
+	READ_FLOAT(vuser4[0]);
+	READ_FLOAT(vuser4[1]);
+	READ_FLOAT(vuser4[2]);
 
-#undef S_INT2
-#undef S_FLOAT2
-#undef S_STR2
+#undef READ_INT2
+#undef READ_FLOAT2
+#undef READ_STR2
 
-#undef C_INT2
-#undef C_FLOAT2
-#undef C_STR2
-
-#undef S_INT
-#undef S_FLOAT
-#undef S_STR
-
-#undef C_INT
-#undef C_FLOAT
-#undef C_STR
+#undef READ_INT
+#undef READ_FLOAT
+#undef READ_STR
 }
 
 void Delta::readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponData)
 {
-#define S_INT2(X, Y) if (f.name == #X) weaponData.Y = std::get<int64_t>(f.value);
-#define S_FLOAT2(X, Y) if (f.name == #X)  weaponData.Y = std::get<float>(f.value);
-#define S_STR2(X, Y) if (f.name == #X)  weaponData.Y = std::get<std::string>(f.value);
-
-#define C_INT2(X, Y) else S_INT2(X, Y)
-#define C_FLOAT2(X, Y) else S_FLOAT2(X, Y)
-#define C_STR2(X, Y) else S_STR2(X, Y)
-
-#define S_INT(X) S_INT2(X, X)
-#define S_FLOAT(X) S_FLOAT2(X, X) 
-#define S_STR(X) S_STR2(X, X)
-
-#define C_INT(X) C_INT2(X, X)
-#define C_FLOAT(X) C_FLOAT2(X, X)
-#define C_STR(X) S_STR2(X, X)
-
 	auto result = read(msg, mTables.at("weapon_data_t"));
 
-	for (auto& f : result)
-	{
-		S_INT(m_iId)
-		C_INT(m_iClip)
+#define READ_INT2(X, Y) ReadResultValue<int64_t>(result, #X, weaponData.Y)
+#define READ_FLOAT2(X, Y) ReadResultValue<float>(result, #X, weaponData.Y)
+#define READ_STR2(X, Y) ReadResultValue<std::string>(result, #X, weaponData.Y)
+
+#define READ_INT(X) READ_INT2(X, X)
+#define READ_FLOAT(X) READ_FLOAT2(X, X)
+#define READ_STR(X) READ_STR2(X, X)
+
+	READ_INT(m_iId);
+	READ_INT(m_iClip);
 		
-		C_FLOAT(m_flNextPrimaryAttack)
-		C_FLOAT(m_flNextSecondaryAttack)
-		C_FLOAT(m_flTimeWeaponIdle)
+	READ_FLOAT(m_flNextPrimaryAttack);
+	READ_FLOAT(m_flNextSecondaryAttack);
+	READ_FLOAT(m_flTimeWeaponIdle);
 		
-		C_INT(m_fInReload)
-		C_INT(m_fInSpecialReload)
-		C_FLOAT(m_flNextReload)
-		C_FLOAT(m_flPumpTime)
-		C_FLOAT(m_fReloadTime)
+	READ_INT(m_fInReload);
+	READ_INT(m_fInSpecialReload);
+	READ_FLOAT(m_flNextReload);
+	READ_FLOAT(m_flPumpTime);
+	READ_FLOAT(m_fReloadTime);
 
-		C_FLOAT(m_fAimedDamage)
-		C_FLOAT(m_fNextAimBonus)
-		C_INT(m_fInZoom)
-		C_INT(m_iWeaponState)
+	READ_FLOAT(m_fAimedDamage);
+	READ_FLOAT(m_fNextAimBonus);
+	READ_INT(m_fInZoom);
+	READ_INT(m_iWeaponState);
 
-		C_INT(iuser1)
-		C_INT(iuser2)
-		C_INT(iuser3)
-		C_INT(iuser4)
+	READ_INT(iuser1);
+	READ_INT(iuser2);
+	READ_INT(iuser3);
+	READ_INT(iuser4);
 
-		C_FLOAT(fuser1)
-		C_FLOAT(fuser2)
-		C_FLOAT(fuser3)
-		C_FLOAT(fuser4)
-	};
+	READ_FLOAT(fuser1);
+	READ_FLOAT(fuser2);
+	READ_FLOAT(fuser3);
+	READ_FLOAT(fuser4);
 
-#undef S_INT2
-#undef S_FLOAT2
-#undef S_STR2
+#undef READ_INT2
+#undef READ_FLOAT2
+#undef READ_STR2
 
-#undef C_INT2
-#undef C_FLOAT2
-#undef C_STR2
-
-#undef S_INT
-#undef S_FLOAT
-#undef S_STR
-
-#undef C_INT
-#undef C_FLOAT
-#undef C_STR
+#undef READ_INT
+#undef READ_FLOAT
+#undef READ_STR
 }
 
 void Delta::readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt)
 {
-#define S_INT2(X, Y) if (f.name == #X) evt.Y = std::get<int64_t>(f.value);
-#define S_FLOAT2(X, Y) if (f.name == #X) evt.Y = std::get<float>(f.value);
-#define S_STR2(X, Y) if (f.name == #X) evt.Y = std::get<std::string>(f.value);
-
-#define C_INT2(X, Y) else S_INT2(X, Y)
-#define C_FLOAT2(X, Y) else S_FLOAT2(X, Y)
-#define C_STR2(X, Y) else S_STR2(X, Y)
-
-#define S_INT(X) S_INT2(X, X)
-#define S_FLOAT(X) S_FLOAT2(X, X) 
-#define S_STR(X) S_STR2(X, X)
-
-#define C_INT(X) C_INT2(X, X)
-#define C_FLOAT(X) C_FLOAT2(X, X)
-#define C_STR(X) S_STR2(X, X)
-
 	auto result = read(msg, mTables.at("event_t"));
 
-	for (auto& f : result)
-	{
-		S_INT(entindex)
-		C_FLOAT(origin[0])
-		C_FLOAT(origin[1])
-		C_FLOAT(origin[2])
-		C_FLOAT(angles[0])
-		C_FLOAT(angles[1])
-		C_FLOAT(angles[2])
-		C_INT(ducking)
-		C_FLOAT(fparam1)
-		C_FLOAT(fparam2)
-		C_INT(iparam1)
-		C_INT(iparam2)
-		C_INT(bparam1)
-		C_INT(bparam2)
-	}
+#define READ_INT2(X, Y) ReadResultValue<int64_t>(result, #X, evt.Y)
+#define READ_FLOAT2(X, Y) ReadResultValue<float>(result, #X, evt.Y)
+#define READ_STR2(X, Y) ReadResultValue<std::string>(result, #X, evt.Y)
 
-#undef S_INT2
-#undef S_FLOAT2
-#undef S_STR2
+#define READ_INT(X) READ_INT2(X, X)
+#define READ_FLOAT(X) READ_FLOAT2(X, X)
+#define READ_STR(X) READ_STR2(X, X)
 
-#undef C_INT2
-#undef C_FLOAT2
-#undef C_STR2
+	READ_INT(entindex);
+	READ_FLOAT(origin[0]);
+	READ_FLOAT(origin[1]);
+	READ_FLOAT(origin[2]);
+	READ_FLOAT(angles[0]);
+	READ_FLOAT(angles[1]);
+	READ_FLOAT(angles[2]);
+	READ_INT(ducking);
+	READ_FLOAT(fparam1);
+	READ_FLOAT(fparam2);
+	READ_INT(iparam1);
+	READ_INT(iparam2);
+	READ_INT(bparam1);
+	READ_INT(bparam2);
 
-#undef S_INT
-#undef S_FLOAT
-#undef S_STR
+#undef READ_INT2
+#undef READ_FLOAT2
+#undef READ_STR2
 
-#undef C_INT
-#undef C_FLOAT
-#undef C_STR
+#undef READ_INT
+#undef READ_FLOAT
+#undef READ_STR
 }
 
 void Delta::readEntityNormal(Common::BitBuffer& msg, Protocol::Entity& entity)
@@ -493,158 +435,139 @@ void Delta::readEntityCustom(Common::BitBuffer& msg, Protocol::Entity& entity)
 
 void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::string& table)
 {
-#define S_INT2(X, Y) if (f.name == #X) entity.Y = std::get<int64_t>(f.value);
-#define S_FLOAT2(X, Y) if (f.name == #X) entity.Y = std::get<float>(f.value); 
-#define S_STR2(X, Y) if (f.name == #X) entity.Y = std::get<std::string>(f.value);
-
-#define C_INT2(X, Y) else S_INT2(X, Y)
-#define C_FLOAT2(X, Y) else S_FLOAT2(X, Y)
-#define C_STR2(X, Y) else S_STR2(X, Y)
-
-#define S_INT(X) S_INT2(X, X)
-#define S_FLOAT(X) S_FLOAT2(X, X) 
-#define S_STR(X) S_STR2(X, X)
-
-#define C_INT(X) C_INT2(X, X)
-#define C_FLOAT(X) C_FLOAT2(X, X)
-#define C_STR(X) S_STR2(X, X)
-
 	auto result = read(msg, mTables.at(table));
 
-	for (auto& f : result)
-	{
-		S_FLOAT(origin[0])
-		C_FLOAT(origin[1])
-		C_FLOAT(origin[2])
+#define READ_INT2(X, Y) ReadResultValue<int64_t>(result, #X, entity.Y)
+#define READ_FLOAT2(X, Y) ReadResultValue<float>(result, #X, entity.Y)
+#define READ_STR2(X, Y) ReadResultValue<std::string>(result, #X, entity.Y)
 
-		C_FLOAT(angles[0])
-		C_FLOAT(angles[1])
-		C_FLOAT(angles[2])
+#define READ_INT(X) READ_INT2(X, X)
+#define READ_FLOAT(X) READ_FLOAT2(X, X)
+#define READ_STR(X) READ_STR2(X, X)
 
-		C_INT(modelindex)
-		C_INT(sequence)
-		C_FLOAT(frame)
-		C_INT(colormap)
-		C_INT(skin)
-		C_INT(solid)
-		C_INT(effects)
-		C_FLOAT(scale)
+	READ_FLOAT(origin[0]);
+	READ_FLOAT(origin[1]);
+	READ_FLOAT(origin[2]);
 
-		C_INT(eflags)
+	READ_FLOAT(angles[0]);
+	READ_FLOAT(angles[1]);
+	READ_FLOAT(angles[2]);
 
-		C_INT(rendermode)
-		C_INT(renderamt)
-		C_INT2(rendercolor.r, rendercolor[0])
-		C_INT2(rendercolor.g, rendercolor[1])
-		C_INT2(rendercolor.b, rendercolor[2])
-		C_INT(renderfx)
+	READ_INT(modelindex);
+	READ_INT(sequence);
+	READ_FLOAT(frame);
+	READ_INT(colormap);
+	READ_INT(skin);
+	READ_INT(solid);
+	READ_INT(effects);
+	READ_FLOAT(scale);
 
-		C_INT(movetype)
-		C_FLOAT(animtime)
-		C_FLOAT(framerate)
-		C_INT(body)
+	READ_INT(eflags);
 
-		C_INT(controller[0])
-		C_INT(controller[1])
-		C_INT(controller[2])
-		C_INT(controller[3])
+	READ_INT(rendermode);
+	READ_INT(renderamt);
+	READ_INT2(rendercolor.r, rendercolor[0]);
+	READ_INT2(rendercolor.g, rendercolor[1]);
+	READ_INT2(rendercolor.b, rendercolor[2]);
+	READ_INT(renderfx);
 
-		C_INT(blending[0])
-		C_INT(blending[1])
+	READ_INT(movetype);
+	READ_FLOAT(animtime);
+	READ_FLOAT(framerate);
+	READ_INT(body);
 
-		C_FLOAT(velocity[0])
-		C_FLOAT(velocity[1])
-		C_FLOAT(velocity[2])
+	READ_INT(controller[0]);
+	READ_INT(controller[1]);
+	READ_INT(controller[2]);
+	READ_INT(controller[3]);
 
-		C_FLOAT(mins[0])
-		C_FLOAT(mins[1])
-		C_FLOAT(mins[2])
+	READ_INT(blending[0]);
+	READ_INT(blending[1]);
 
-		C_FLOAT(maxs[0])
-		C_FLOAT(maxs[1])
-		C_FLOAT(maxs[2])
+	READ_FLOAT(velocity[0]);
+	READ_FLOAT(velocity[1]);
+	READ_FLOAT(velocity[2]);
 
-		C_INT(aiment)
+	READ_FLOAT(mins[0]);
+	READ_FLOAT(mins[1]);
+	READ_FLOAT(mins[2]);
 
-		C_INT(owner)
+	READ_FLOAT(maxs[0]);
+	READ_FLOAT(maxs[1]);
+	READ_FLOAT(maxs[2]);
 
-		C_FLOAT(friction)
-		C_FLOAT(gravity)
+	READ_INT(aiment);
 
-		C_INT(team)
-		C_INT(playerclass)
-		C_INT(health)
-		C_INT(spectator)
-		C_INT(weaponmodel)
-		C_INT(gaitsequence)
+	READ_INT(owner);
 
-		C_FLOAT(basevelocity[0])
-		C_FLOAT(basevelocity[1])
-		C_FLOAT(basevelocity[2])
+	READ_FLOAT(friction);
+	READ_FLOAT(gravity);
 
-		C_INT(usehull)
-		C_INT(oldbuttons)
-		C_INT(onground)
-		C_INT(iStepLeft)
-		C_FLOAT(flFallVelocity)
+	READ_INT(team);
+	READ_INT(playerclass);
+	READ_INT(health);
+	READ_INT(spectator);
+	READ_INT(weaponmodel);
+	READ_INT(gaitsequence);
 
-		// TODO: where is fov ?
+	READ_FLOAT(basevelocity[0]);
+	READ_FLOAT(basevelocity[1]);
+	READ_FLOAT(basevelocity[2]);
 
-		C_INT(weaponanim)
+	READ_INT(usehull);
+	READ_INT(oldbuttons);
+	READ_INT(onground);
+	READ_INT(iStepLeft);
+	READ_FLOAT(flFallVelocity);
 
-		C_FLOAT(startpos[0])
-		C_FLOAT(startpos[1])
-		C_FLOAT(startpos[2])
+	// TODO: where is fov ?
 
-		C_FLOAT(endpos[0])
-		C_FLOAT(endpos[1])
-		C_FLOAT(endpos[2])
+	READ_INT(weaponanim);
 
-		C_FLOAT(impacttime)
-		C_FLOAT(starttime)
+	READ_FLOAT(startpos[0]);
+	READ_FLOAT(startpos[1]);
+	READ_FLOAT(startpos[2]);
 
-		C_INT(iuser1)
-		C_INT(iuser2)
-		C_INT(iuser3)
-		C_INT(iuser4)
+	READ_FLOAT(endpos[0]);
+	READ_FLOAT(endpos[1]);
+	READ_FLOAT(endpos[2]);
 
-		C_FLOAT(fuser1)
-		C_FLOAT(fuser2)
-		C_FLOAT(fuser3)
-		C_FLOAT(fuser4)
+	READ_FLOAT(impacttime);
+	READ_FLOAT(starttime);
 
-		C_FLOAT(vuser1[0])
-		C_FLOAT(vuser1[1])
-		C_FLOAT(vuser1[2])
+	READ_INT(iuser1);
+	READ_INT(iuser2);
+	READ_INT(iuser3);
+	READ_INT(iuser4);
 
-		C_FLOAT(vuser2[0])
-		C_FLOAT(vuser2[1])
-		C_FLOAT(vuser2[2])
+	READ_FLOAT(fuser1);
+	READ_FLOAT(fuser2);
+	READ_FLOAT(fuser3);
+	READ_FLOAT(fuser4);
 
-		C_FLOAT(vuser3[0])
-		C_FLOAT(vuser3[1])
-		C_FLOAT(vuser3[2])
+	READ_FLOAT(vuser1[0]);
+	READ_FLOAT(vuser1[1]);
+	READ_FLOAT(vuser1[2]);
 
-		C_FLOAT(vuser4[0])
-		C_FLOAT(vuser4[1])
-		C_FLOAT(vuser4[2])
-	}
+	READ_FLOAT(vuser2[0]);
+	READ_FLOAT(vuser2[1]);
+	READ_FLOAT(vuser2[2]);
 
-#undef S_INT2
-#undef S_FLOAT2
-#undef S_STR2
+	READ_FLOAT(vuser3[0]);
+	READ_FLOAT(vuser3[1]);
+	READ_FLOAT(vuser3[2]);
 
-#undef C_INT2
-#undef C_FLOAT2
-#undef C_STR2
+	READ_FLOAT(vuser4[0]);
+	READ_FLOAT(vuser4[1]);
+	READ_FLOAT(vuser4[2]);
 
-#undef S_INT
-#undef S_FLOAT
-#undef S_STR
+#undef READ_INT2
+#undef READ_FLOAT2
+#undef READ_STR2
 
-#undef C_INT
-#undef C_FLOAT
-#undef C_STR
+#undef READ_INT
+#undef READ_FLOAT
+#undef READ_STR
 };
 
 void Delta::writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
