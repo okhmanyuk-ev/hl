@@ -85,7 +85,6 @@ namespace HL
 		void read(Common::BitBuffer& msg, Field& field);
 
 	private:
-		std::optional<ReadResult> read(Common::BitBuffer& msg, const std::string& name);
 		ReadResult read(Common::BitBuffer& msg, const Table& table);
 
 		void write(Common::BitBuffer& msg, const Table& table, const WriteFields& writeFields);

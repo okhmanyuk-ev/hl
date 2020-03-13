@@ -42,14 +42,6 @@ void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldC
 	mTables.insert({ name, table });
 }
 
-std::optional<Delta::ReadResult> Delta::read(Common::BitBuffer& msg, const std::string& name)
-{
-	if (mTables.count(name) == 0)
-		return std::nullopt;
-
-	return read(msg, mTables.at(name));
-}
-
 Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 {
 	uint64_t marks = 0;
@@ -261,7 +253,7 @@ void Delta::readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientD
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = *read(msg, "clientdata_t");
+	auto result = read(msg, mTables.at("clientdata_t"));
 
 	for (auto& f : result)
 	{
@@ -379,7 +371,7 @@ void Delta::readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponD
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = *read(msg, "weapon_data_t");
+	auto result = read(msg, mTables.at("weapon_data_t"));
 
 	for (auto& f : result)
 	{
@@ -447,7 +439,7 @@ void Delta::readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt)
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = *read(msg, "event_t");
+	auto result = read(msg, mTables.at("event_t"));
 
 	for (auto& f : result)
 	{
@@ -517,7 +509,7 @@ void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::st
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = *read(msg, table);
+	auto result = read(msg, mTables.at(table));
 
 	for (auto& f : result)
 	{
