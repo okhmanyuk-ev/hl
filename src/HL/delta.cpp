@@ -6,42 +6,25 @@
 
 using namespace HL;
 
-const Delta::Table Delta::metaDescription =
+const Delta::Table Delta::MetaDescription =
 {
-	"g_MetaDelta",
-	{
-		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
-		{ "fieldName", DT_STRING, },
-		{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
-		{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
-		{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
-		{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
-		{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
-	}
+	{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
+	{ "fieldName", DT_STRING, },
+	{ "fieldOffset", DT_INTEGER, 16, 1.0f, 1.0f },
+	{ "fieldSize", DT_INTEGER, 8, 1.0f, 1.0f },
+	{ "significant_bits", DT_INTEGER, 8, 1.0f, 1.0f },
+	{ "premultiply", DT_FLOAT, 32, 4000.0f, 1.0f },
+	{ "postmultiply", DT_FLOAT, 32, 4000.0f, 1.0f }
 };
-
-Delta::Delta() :
-	m_Tables()
-{
-	//
-}
-
-Delta::~Delta()
-{
-	//
-}
-
 
 void Delta::clear()
 {
-	m_Tables.clear();
+	mTables.clear();
 }
 
 void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldCount)
 {
 	Table table;
-
-	table.name = name;
 
 	for (uint32_t i = 0; i < fieldCount; i++)
 	{
@@ -53,23 +36,18 @@ void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldC
 		
 		read(msg, field);
 		
-		table.fields.push_back(field);
+		table.push_back(field);
 	}
 
-	m_Tables.push_back(table);
+	mTables.insert({ name, table });
 }
 
 std::optional<Delta::ReadResult> Delta::read(Common::BitBuffer& msg, const std::string& name)
 {
-	for (auto& table : m_Tables)
-	{
-		if (table.name != name)
-			continue;
+	if (mTables.count(name) == 0)
+		return std::nullopt;
 
-		return read(msg, table);
-	}
-
-	return std::nullopt;
+	return read(msg, mTables.at(name));
 }
 
 Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
@@ -83,7 +61,7 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 
 	int i = -1;
 
-	for (auto& field : table.fields)
+	for (auto& field : table)
 	{
 		i++;
 
@@ -175,7 +153,7 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 	
 	for (auto& field : writeFields)
 	{
-		auto normal = std::next(table.fields.begin(), field.index);
+		auto normal = std::next(table.begin(), field.index);
 		
 		bool sign = normal->type & DT_SIGNED;
 		int type = normal->type & ~DT_SIGNED;
@@ -243,7 +221,7 @@ void Delta::read(Common::BitBuffer& msg, Field& field)
 #define C_FLOAT(X, Y) else S_FLOAT(X, Y)
 #define C_STR(X, Y) else S_STR(X, Y)
 
-	auto result = read(msg, metaDescription);
+	auto result = read(msg, MetaDescription);
 
 	for (auto& f : result)
 	{
@@ -701,39 +679,33 @@ void Delta::writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) C_STR2(X, X)
 
-	for (auto& table : m_Tables)
+	auto table = mTables.at("usercmd_t");
+
+	WriteFields writeFields;
+
+	int i = -1;
+
+	for (auto& f : table)
 	{
-		if (table.name != "usercmd_t")
-			continue;
-
-		WriteFields writeFields;
-
-		int i = -1;
-
-		for (auto& f : table.fields)
-		{
-			int type = f.type & ~DT_SIGNED;
-			i++;
-			S_INT(lerp_msec)
-			C_INT(msec)
-			C_FLOAT(viewangles[0])
-			C_FLOAT(viewangles[1])
-			C_FLOAT(viewangles[2])
-			C_FLOAT(forwardmove)
-			C_FLOAT(sidemove)
-			C_FLOAT(upmove)
-			C_INT(lightlevel)
-			C_INT(buttons)
-			C_INT(impulse)
-			C_INT(weaponselect)
-			C_INT(impact_index)
-			C_FLOAT(impact_position[0])
-			C_FLOAT(impact_position[1])
-			C_FLOAT(impact_position[2])
-		}
-
-		write(msg, table, writeFields);
-
-		return;
+		int type = f.type & ~DT_SIGNED;
+		i++;
+		S_INT(lerp_msec)
+		C_INT(msec)
+		C_FLOAT(viewangles[0])
+		C_FLOAT(viewangles[1])
+		C_FLOAT(viewangles[2])
+		C_FLOAT(forwardmove)
+		C_FLOAT(sidemove)
+		C_FLOAT(upmove)
+		C_INT(lightlevel)
+		C_INT(buttons)
+		C_INT(impulse)
+		C_INT(weaponselect)
+		C_INT(impact_index)
+		C_FLOAT(impact_position[0])
+		C_FLOAT(impact_position[1])
+		C_FLOAT(impact_position[2])
 	}
+
+	write(msg, table, writeFields);
 }

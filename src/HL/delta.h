@@ -6,8 +6,9 @@
 #include <vector>
 #include <variant>
 #include <optional>
+#include <unordered_map>
 
-#include <Common/bitbuffer.h>
+#include <common/bitbuffer.h>
 #include "protocol.h"
 
 static const int DT_BYTE = 1 << 0;
@@ -45,11 +46,7 @@ namespace HL
 		//	int offset;
 		};
 
-		struct Table
-		{
-			std::string name;
-			std::list<Field> fields;
-		};
+		using Table = std::list<Field>;
 
 		struct ReadResultField
 		{
@@ -68,10 +65,6 @@ namespace HL
 		};
 
 		typedef std::list<WriteField> WriteFields;
-
-	public:
-		Delta();
-		~Delta();
 
 	public:
 		void clear();
@@ -98,10 +91,10 @@ namespace HL
 		void write(Common::BitBuffer& msg, const Table& table, const WriteFields& writeFields);
 
 	private:
-		std::list<Table> m_Tables;
+		std::unordered_map<std::string, Table> mTables;
 
 	private:
-		static const Table metaDescription;
+		static const Table MetaDescription;
 
 	};
 }
