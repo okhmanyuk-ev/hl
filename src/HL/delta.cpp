@@ -2,6 +2,7 @@
 
 #include <Common/buffer_helpers.h>
 #include <cassert>
+#include <stdexcept>
 
 using namespace HL;
 
@@ -80,8 +81,6 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 		
 	ReadResult result;
 
-	result.name = table.name;
-
 	int i = -1;
 
 	for (auto& field : table.fields)
@@ -104,20 +103,13 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 		case DT_SHORT:
 		case DT_INTEGER:
 		{
-			double value = 0.0f;
-
 			if (sign)
-				value = (double)Common::BufferHelpers::ReadSBits(msg, field.bits); 
+				resultField.value = static_cast<int64_t>(Common::BufferHelpers::ReadSBits(msg, field.bits));
 			else
-				value = (double)msg.readBits(field.bits);
+				resultField.value = static_cast<int64_t>(msg.readBits(field.bits));
 
-			//if (field.scale <= 0.9999 || field.scale >= 1.0001)
-				value /= field.scale;
-
-			//if (field.pscale <= 0.9999 || field.pscale >= 1.0001)
-				value *= field.pscale;
-
-			resultField.value = static_cast<int64_t>(value);
+			assert(field.scale == 1.0f);
+			assert(field.pscale == 1.0f);
 		}
 		
 		break;
@@ -129,20 +121,17 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 		case DT_TIMEWINDOW_BIG:
 		case DT_FLOAT:
 		{
-			double value = 0.0f;
+			float value = 0.0f;
 
 			if (sign)
-				value = (double)Common::BufferHelpers::ReadSBits(msg, field.bits);
+				value = (float)Common::BufferHelpers::ReadSBits(msg, field.bits);
 			else
-				value = (double)msg.readBits(field.bits);
+				value = (float)msg.readBits(field.bits);
 
-			//if (field.scale <= 0.9999 || field.scale >= 1.0001)
-				value /= field.scale;
+			value /= field.scale;
+			value *= field.pscale;
 
-			//if (field.pscale <= 0.9999 || field.pscale >= 1.0001)
-				value *= field.pscale;
-
-			resultField.value = static_cast<float>(value);
+			resultField.value = value;
 			break;
 		}
 		case DT_ANGLE:
@@ -154,11 +143,11 @@ Delta::ReadResult Delta::read(Common::BitBuffer& msg, const Table& table)
 			break;
 		
 		default:
-			//throw std::runtime_error(("unknown delta field: " + std::to_string(type)).c_str());
+			throw std::runtime_error(("unknown delta field: " + std::to_string(type)).c_str());
 			break;
 		}
 
-		result.fields.push_back(resultField);
+		result.push_back(resultField);
 	}
 
 	return result;
@@ -197,18 +186,13 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 		case DT_SHORT:
 		case DT_INTEGER:
 		{
-			double value = (double)field.valueInt;
-
-			if (normal->scale <= 0.9999 || normal->scale >= 1.0001)
-				value /= normal->scale;
-
-			if (normal->pscale <= 0.9999 || normal->pscale >= 1.0001)
-				value *= normal->pscale;
+			assert(normal->scale == 1.0f);
+			assert(normal->pscale == 1.0f);
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, (int32_t)value, normal->bits);
+				Common::BufferHelpers::WriteSBits(msg, field.valueInt, normal->bits);
 			else
-				msg.writeBits((uint32_t)value, normal->bits);
+				msg.writeBits(field.valueInt, normal->bits);
 		}
 		break;
 
@@ -243,7 +227,7 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 			break;
 
 		default:
-		//	throw std::runtime_error(("unknown delta field: " + std::to_string(type)).c_str());
+			throw std::runtime_error(("unknown delta field: " + std::to_string(type)).c_str());
 			break;
 		}
 	}
@@ -261,7 +245,7 @@ void Delta::read(Common::BitBuffer& msg, Field& field)
 
 	auto result = read(msg, metaDescription);
 
-	for (auto& f : result.fields)
+	for (auto& f : result)
 	{
 		S_INT(fieldType, type);
 		C_STR(fieldName, name);
@@ -299,9 +283,9 @@ void Delta::readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientD
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = read(msg, "clientdata_t");
+	auto result = *read(msg, "clientdata_t");
 
-	for (auto& f : result->fields)
+	for (auto& f : result)
 	{
 		S_FLOAT(origin[0])
 		C_FLOAT(origin[1])
@@ -417,9 +401,9 @@ void Delta::readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponD
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = read(msg, "weapon_data_t");
+	auto result = *read(msg, "weapon_data_t");
 
-	for (auto& f : result->fields)
+	for (auto& f : result)
 	{
 		S_INT(m_iId)
 		C_INT(m_iClip)
@@ -485,9 +469,9 @@ void Delta::readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt)
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = read(msg, "event_t");
+	auto result = *read(msg, "event_t");
 
-	for (auto& f : result->fields)
+	for (auto& f : result)
 	{
 		S_INT(entindex)
 		C_FLOAT(origin[0])
@@ -555,9 +539,9 @@ void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::st
 #define C_FLOAT(X) C_FLOAT2(X, X)
 #define C_STR(X) S_STR2(X, X)
 
-	auto result = read(msg, table);
+	auto result = *read(msg, table);
 
-	for (auto& f : result->fields)
+	for (auto& f : result)
 	{
 		S_FLOAT(origin[0])
 		C_FLOAT(origin[1])

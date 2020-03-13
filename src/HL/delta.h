@@ -57,11 +57,7 @@ namespace HL
 			std::variant<int64_t, float, std::string> value;
 		};
 
-		struct ReadResult
-		{
-			std::string name;
-			std::list<ReadResultField> fields;
-		};
+		using ReadResult = std::list<ReadResultField>;
 
 		struct WriteField
 		{
