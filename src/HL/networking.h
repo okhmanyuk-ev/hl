@@ -13,8 +13,7 @@ namespace HL
 	{
 	public:
 		Networking(uint16_t port = 0);
-		~Networking();
-
+		
 	protected:
 		virtual void readConnectionlessPacket(Network::Packet& packet) = 0;
 		virtual void readRegularPacket(Network::Packet& packet) = 0;
@@ -28,10 +27,10 @@ namespace HL
 		void sendConnectionlessPacket(Network::Packet& packet);
 
 	protected:
-		auto& getSocket() { return mSocket; }
+		auto getSocket() { return mSocket; }
 
 	private:
-		Network::Socket* mSocket;
+		std::shared_ptr<Network::Socket> mSocket;
 
 	private:
 		struct Fragment

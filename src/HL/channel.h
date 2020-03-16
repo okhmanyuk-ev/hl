@@ -18,7 +18,7 @@ namespace HL
 		typedef std::function<void(const std::string& name, Common::BitBuffer& buf)> FileHandler;
 
 	public:
-		Channel(Network::Socket* socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
+		Channel(std::shared_ptr<Network::Socket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
 		~Channel();
 
 	public:
@@ -40,13 +40,13 @@ namespace HL
 		FileHandler mFileHandler;
 
 	public:
-		auto& getSocket() { return mSocket; }
+		auto getSocket() { return mSocket; }
 
 		auto getAddress() const { return mAddress; }
 		void setAddress(Network::Address value) { mAddress = value; }
 
 	private:
-		Network::Socket* mSocket;
+		std::shared_ptr<Network::Socket> mSocket;
 		Network::Address mAddress;
 		
 	public:

@@ -3,17 +3,12 @@
 
 namespace HL
 {
-	Networking::Networking(uint16_t port) : 
-		mSocket(NETWORK->createSocket(port))
+	Networking::Networking(uint16_t port)
 	{
+		mSocket = std::make_shared<Network::Socket>(port);
 		mSocket->setReadCallback([this](Network::Packet& packet) { 
 			readPacket(packet); 
 		});
-	}
-
-	Networking::~Networking()
-	{
-		NETWORK->destroySocket(mSocket);
 	}
 
 	void Networking::readPacket(Network::Packet& packet)

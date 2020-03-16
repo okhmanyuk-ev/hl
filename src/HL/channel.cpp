@@ -8,7 +8,7 @@
 
 using namespace HL;
 
-Channel::Channel(Network::Socket* socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) : 
+Channel::Channel(std::shared_ptr<Network::Socket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) :
 	mSocket(socket),
 		
 	mReadHandler(readHandler), 
