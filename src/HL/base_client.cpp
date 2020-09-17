@@ -614,7 +614,7 @@ void BaseClient::readRegularServerInfo(Common::BitBuffer& msg)
 	msg.read<uint8_t>(); // UInt((coop.Value = 0) and (deathmatch.Value <> 0))
 
 	mGameDir = Common::BufferHelpers::ReadString(msg);
-	auto hostname = Common::BufferHelpers::ReadString(msg);
+	mHostname = Common::BufferHelpers::ReadString(msg);
 	mMap = Common::BufferHelpers::ReadString(msg);
 	auto mapList = Common::BufferHelpers::ReadString(msg);
 

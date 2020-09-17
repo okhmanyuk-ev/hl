@@ -102,11 +102,13 @@ namespace HL
 		
 	public:
 		auto getIndex() const { return mIndex; }
+		const auto& getHostname() const { return mHostname; }
 		const auto& getMap() const { return mMap; }
 		const auto& getGameDir() const { return mGameDir; }
 
 	private:
 		int32_t mIndex;
+		std::string mHostname;
 		std::string mMap;
 		std::string mGameDir;
 	
