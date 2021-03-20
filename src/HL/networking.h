@@ -30,7 +30,7 @@ namespace HL
 		auto getSocket() { return mSocket; }
 
 	private:
-		std::shared_ptr<Network::Socket> mSocket;
+		std::shared_ptr<Network::UdpSocket> mSocket;
 
 	private:
 		struct Fragment

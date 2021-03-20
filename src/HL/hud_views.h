@@ -15,7 +15,7 @@ namespace HL
 		HudViews(BaseClient& baseClient);
 		
 	private:
-		void frame() override;
+		void onFrame() override;
 
 	private:
 		BaseClient& mBaseClient;

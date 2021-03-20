@@ -3,10 +3,8 @@
 #include "protocol.h"
 #include <HL/md5.h>
 #include <Common/buffer_helpers.h>
-
+#include <common/helpers.h>
 //#include <filesystem> // TODO: not working on android
-
-#include <Common/size_converter.h>
 
 #include "encoder.h"
 
@@ -462,9 +460,9 @@ void BaseClient::receiveFile(std::string_view fileName, Common::BitBuffer& msg)
 {
 	Platform::Asset::Write(mGameDir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
-
+	
 	CONSOLE_DEVICE->writeLine("received: \"" + std::string(fileName) + "\", size: " +
-		Common::SizeConverter::ToString(msg.getSize()) /*+ ", Left: " + std::to_string(mDownloadQueue.size())*/);
+		Common::Helpers::BytesToNiceString(msg.getSize()) /*+ ", Left: " + std::to_string(mDownloadQueue.size())*/);
 }
 
 void BaseClient::readRegularDisconnect(Common::BitBuffer& msg)

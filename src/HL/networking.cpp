@@ -5,7 +5,7 @@ namespace HL
 {
 	Networking::Networking(uint16_t port)
 	{
-		mSocket = std::make_shared<Network::Socket>(port);
+		mSocket = std::make_shared<Network::UdpSocket>(port);
 		mSocket->setReadCallback([this](Network::Packet& packet) { 
 			readPacket(packet); 
 		});

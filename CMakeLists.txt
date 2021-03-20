@@ -11,6 +11,8 @@ file(GLOB HL_SRC
     src/hl/*.h
 )
 
+source_group("all" FILES ${HL_SRC})
+
 add_library(${PROJECT_NAME} STATIC ${HL_SRC})
 target_include_directories(${PROJECT_NAME} PUBLIC src)
 

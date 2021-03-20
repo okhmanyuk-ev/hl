@@ -21,7 +21,7 @@ namespace HL
 			CVAR_SETTER(mWantShowEntities = CON_ARG_INT(0)));
 	}
 
-	void HudViews::frame()
+	void HudViews::onFrame()
 	{
 		if (mWantShowNet > 0)
 		{
