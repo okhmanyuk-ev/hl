@@ -87,5 +87,5 @@ public:
 
 private:
 	std::vector<lumpinfo_t> mLumps;
-	Common::BitBuffer mBuffer;
+	BitBuffer mBuffer;
 };

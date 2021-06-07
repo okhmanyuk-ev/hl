@@ -2,11 +2,11 @@
 
 // TODO: add timeouts for frag buffers
 
-#include <Core/engine.h>
-#include <Common/bitbuffer.h>
-#include <Common/timer.h>
-#include <Network/system.h>
-#include <Console/device.h>
+#include <core/engine.h>
+#include <common/bitbuffer.h>
+#include <common/timer.h>
+#include <network/system.h>
+#include <console/device.h>
 #include <vector>
 
 namespace HL
@@ -14,8 +14,8 @@ namespace HL
 	class Channel
 	{
 	public:
-		typedef std::function<void(Common::BitBuffer& msg)> MessagesHandler;
-		typedef std::function<void(const std::string& name, Common::BitBuffer& buf)> FileHandler;
+		using MessagesHandler = std::function<void(BitBuffer& msg)>;
+		using FileHandler = std::function<void(const std::string& name, BitBuffer& buf)>;
 
 	public:
 		Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
@@ -23,16 +23,16 @@ namespace HL
 
 	public:
 		void clear();
-		void process(Common::BitBuffer& msg);
-		void addReliableMessage(Common::BitBuffer& msg);
+		void process(BitBuffer& msg);
+		void addReliableMessage(BitBuffer& msg);
 		void createNormalFragments(); // fragmentate a reliable buffer
 
 	private:
 		void transmit();
-		void writeReliableMessages(Common::BitBuffer& msg);
-		void readFragments(Common::BitBuffer& msg);
-		void readNormalFragments(Common::BitBuffer& msg);
-		void readFileFragments(Common::BitBuffer& msg, size_t normalSize);
+		void writeReliableMessages(BitBuffer& msg);
+		void readFragments(BitBuffer& msg);
+		void readNormalFragments(BitBuffer& msg);
+		void readFileFragments(BitBuffer& msg, size_t normalSize);
 
 	private:
 		MessagesHandler mReadHandler;
@@ -86,11 +86,11 @@ namespace HL
 		Common::Timer mTimer;
 
 	private:
-		std::list<Common::BitBuffer*> mReliableMessages;
+		std::list<BitBuffer*> mReliableMessages;
 
 		struct Fragment
 		{
-			Common::BitBuffer buffer;
+			BitBuffer buffer;
 			bool completed = false;
 		};
 

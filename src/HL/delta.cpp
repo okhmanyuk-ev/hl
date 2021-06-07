@@ -23,7 +23,7 @@ void Delta::clear()
 	mTables.clear();
 }
 
-void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldCount)
+void Delta::add(BitBuffer& msg, const std::string& name, uint32_t fieldCount)
 {
 	Table table;
 
@@ -43,7 +43,7 @@ void Delta::add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldC
 	mTables.insert({ name, table });
 }
 
-Delta::ReadFields Delta::read(Common::BitBuffer& msg, const Table& table)
+Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 {
 	uint64_t marks = 0;
 	uint32_t count = msg.readBits(3);
@@ -120,7 +120,7 @@ Delta::ReadFields Delta::read(Common::BitBuffer& msg, const Table& table)
 	return result;
 }
 
-void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields& fields)
+void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 {
 	uint64_t marks = 0;
 	
@@ -197,7 +197,7 @@ void Delta::write(Common::BitBuffer& msg, const Table& table, const WriteFields&
 	}
 }
 
-void Delta::read(Common::BitBuffer& msg, Field& field)
+void Delta::read(BitBuffer& msg, Field& field)
 {
 	static const Delta::Table MetaTable = {
 		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
@@ -228,7 +228,7 @@ void Delta::read(Common::BitBuffer& msg, Field& field)
 #undef READ_STR
 }
 
-void Delta::readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientData)
+void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
 {
 	auto result = read(msg, mTables.at("clientdata_t"));
 
@@ -327,7 +327,7 @@ void Delta::readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientD
 #undef READ_STR
 }
 
-void Delta::readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponData)
+void Delta::readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData)
 {
 	auto result = read(msg, mTables.at("weapon_data_t"));
 
@@ -376,7 +376,7 @@ void Delta::readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponD
 #undef READ_STR
 }
 
-void Delta::readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt)
+void Delta::readEvent(BitBuffer& msg, Protocol::EventArgs& evt)
 {
 	auto result = read(msg, mTables.at("event_t"));
 
@@ -412,22 +412,22 @@ void Delta::readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt)
 #undef READ_STR
 }
 
-void Delta::readEntityNormal(Common::BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityNormal(BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "entity_state_t");
 }
 
-void Delta::readEntityPlayer(Common::BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityPlayer(BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "entity_state_player_t");
 }
 
-void Delta::readEntityCustom(Common::BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityCustom(BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "custom_entity_state_t");
 }
 
-void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::string& table)
+void Delta::read(BitBuffer& msg, Protocol::Entity& entity, const std::string& table)
 {
 	auto result = read(msg, mTables.at(table));
 
@@ -564,7 +564,7 @@ void Delta::read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::st
 #undef READ_STR
 };
 
-void Delta::writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
+void Delta::writeUserCmd(BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
 {
 #define S_TOTAL(X, Y, T, A) if (field.name == #X && newCmd.Y != oldCmd.Y) { assert(A); writeFields.insert({ i, (T)newCmd.Y }); }
 

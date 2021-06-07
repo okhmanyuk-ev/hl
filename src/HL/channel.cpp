@@ -75,7 +75,7 @@ void Channel::transmit()
 	int seq = (int)mOutgoingSequence | (rel << 31);
 	int ack = (int)mIncomingSequence | (mOutgoingReliable << 31);
 
-	Common::BitBuffer msg;
+	BitBuffer msg;
 		
 	msg.write(seq);
 	msg.write(ack);
@@ -103,7 +103,7 @@ void Channel::transmit()
 	mSocket->sendPacket(pack);
 }
 
-void Channel::writeReliableMessages(Common::BitBuffer& msg)
+void Channel::writeReliableMessages(BitBuffer& msg)
 {
 	bool first = true;
 
@@ -120,7 +120,7 @@ void Channel::writeReliableMessages(Common::BitBuffer& msg)
 	}
 }
 
-void Channel::process(Common::BitBuffer& msg)
+void Channel::process(BitBuffer& msg)
 {
 	mIncomingTime = Clock::Now();
 
@@ -191,7 +191,7 @@ void Channel::process(Common::BitBuffer& msg)
 	mReadHandler(msg);
 }
 
-void Channel::readFragments(Common::BitBuffer& msg)
+void Channel::readFragments(BitBuffer& msg)
 {
 	size_t size = msg.getSize();
 
@@ -202,7 +202,7 @@ void Channel::readFragments(Common::BitBuffer& msg)
 		readFileFragments(msg, size - msg.getSize());
 }
 
-void Channel::readNormalFragments(Common::BitBuffer& msg)
+void Channel::readNormalFragments(BitBuffer& msg)
 {
 	auto sequence = msg.read<int32_t>();
 	auto offset = msg.read<int16_t>();
@@ -284,7 +284,7 @@ void Channel::readNormalFragments(Common::BitBuffer& msg)
 
 	if (completed)
 	{
-		Common::BitBuffer buf;
+		BitBuffer buf;
 
 		for (auto& f : fb->frags)
 		{
@@ -297,7 +297,7 @@ void Channel::readNormalFragments(Common::BitBuffer& msg)
 		{
 			uint32_t uncompressedSize = 65536;
 
-			Common::BitBuffer uncompressed;
+			BitBuffer uncompressed;
 
 			uncompressed.setSize(uncompressedSize);
 				
@@ -322,7 +322,7 @@ void Channel::readNormalFragments(Common::BitBuffer& msg)
 	}
 }
 
-void Channel::readFileFragments(Common::BitBuffer& msg, size_t normalSize)
+void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 {
 	auto sequence = msg.read<int32_t>();
 	auto offset = msg.read<int16_t>() - (int16_t)normalSize; // !!!
@@ -393,7 +393,7 @@ void Channel::readFileFragments(Common::BitBuffer& msg, size_t normalSize)
 	{
 		//std::cout << total << " file fragments completed" << std::endl;
 
-		Common::BitBuffer buf;
+		BitBuffer buf;
 
 		for (auto& f : fb->frags)
 		{
@@ -406,7 +406,7 @@ void Channel::readFileFragments(Common::BitBuffer& msg, size_t normalSize)
 		bool compressed = Common::BufferHelpers::ReadString(buf) == "bz2";
 		uint32_t size = buf.read<uint32_t>();
 
-		Common::BitBuffer filebuf;
+		BitBuffer filebuf;
 
 		filebuf.setSize(size);
 
@@ -429,9 +429,9 @@ void Channel::readFileFragments(Common::BitBuffer& msg, size_t normalSize)
 	}
 }
 
-void Channel::addReliableMessage(Common::BitBuffer& msg)
+void Channel::addReliableMessage(BitBuffer& msg)
 {
-	Common::BitBuffer* bf = new Common::BitBuffer();
+	auto bf = new BitBuffer();
 
 	Common::BufferHelpers::WriteToBuffer(msg, *bf);
 

@@ -58,24 +58,24 @@ namespace HL
 	public:
 		void clear();
 
-		void add(Common::BitBuffer& msg, const std::string& name, uint32_t fieldCount);
+		void add(BitBuffer& msg, const std::string& name, uint32_t fieldCount);
 
-		void readClientData(Common::BitBuffer& msg, Protocol::ClientData& clientData);
-		void readWeaponData(Common::BitBuffer& msg, Protocol::WeaponData& weaponData);
-		void readEvent(Common::BitBuffer& msg, Protocol::EventArgs& evt);
-		void readEntityNormal(Common::BitBuffer& msg, Protocol::Entity& entity);
-		void readEntityPlayer(Common::BitBuffer& msg, Protocol::Entity& entity);
-		void readEntityCustom(Common::BitBuffer& msg, Protocol::Entity& entity);
+		void readClientData(BitBuffer& msg, Protocol::ClientData& clientData);
+		void readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData);
+		void readEvent(BitBuffer& msg, Protocol::EventArgs& evt);
+		void readEntityNormal(BitBuffer& msg, Protocol::Entity& entity);
+		void readEntityPlayer(BitBuffer& msg, Protocol::Entity& entity);
+		void readEntityCustom(BitBuffer& msg, Protocol::Entity& entity);
 		
-		void writeUserCmd(Common::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd);
+		void writeUserCmd(BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd);
 
 	private:
-		void read(Common::BitBuffer& msg, Protocol::Entity& entity, const std::string& table);
-		void read(Common::BitBuffer& msg, Field& field);
+		void read(BitBuffer& msg, Protocol::Entity& entity, const std::string& table);
+		void read(BitBuffer& msg, Field& field);
 
 	private:
-		ReadFields read(Common::BitBuffer& msg, const Table& table);
-		void write(Common::BitBuffer& msg, const Table& table, const WriteFields& fields);
+		ReadFields read(BitBuffer& msg, const Table& table);
+		void write(BitBuffer& msg, const Table& table, const WriteFields& fields);
 
 	private:
 		std::unordered_map<std::string, Table> mTables;

@@ -35,7 +35,7 @@ namespace HL
 	private:
 		struct Fragment
 		{
-			Common::BitBuffer buffer;
+			BitBuffer buffer;
 			bool completed = false;
 		};
 

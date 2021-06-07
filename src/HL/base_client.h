@@ -43,56 +43,56 @@ namespace HL
 		void readConnectionlessReject(Network::Packet& packet);
 
 	private:
-		void readRegularMessages(Common::BitBuffer& msg);
-		void readRegularGameMessage(Common::BitBuffer& msg, uint8_t index);
-		void receiveFile(std::string_view fileName, Common::BitBuffer& msg);
+		void readRegularMessages(BitBuffer& msg);
+		void readRegularGameMessage(BitBuffer& msg, uint8_t index);
+		void receiveFile(std::string_view fileName, BitBuffer& msg);
 
-		void readRegularDisconnect(Common::BitBuffer& msg);
-		void readRegularEvent(Common::BitBuffer& msg);
-		void readRegularVersion(Common::BitBuffer& msg);
-		void readRegularSetView(Common::BitBuffer& msg);
-		void readRegularSound(Common::BitBuffer& msg);
-		void readRegularTime(Common::BitBuffer& msg);
-		void readRegularPrint(Common::BitBuffer& msg);
-		void readRegularStuffText(Common::BitBuffer& msg);
-		void readRegularAngle(Common::BitBuffer& msg);
-		void readRegularServerInfo(Common::BitBuffer& msg);
-		void readRegularLightStyle(Common::BitBuffer& msg);
-		void readRegularUserInfo(Common::BitBuffer& msg);
-		void readRegularDeltaDescription(Common::BitBuffer& msg);
-		void readRegularClientData(Common::BitBuffer& msg);
-		void readRegularPings(Common::BitBuffer& msg);
-		void readRegularEventReliable(Common::BitBuffer& msg);
-		void readRegularSpawnBaseline(Common::BitBuffer& msg);
-		void readRegularTempEntity(Common::BitBuffer& msg);
-		void readRegularSignonNum(Common::BitBuffer& msg);
-		void readRegularStaticSound(Common::BitBuffer& msg);
-		void readRegularCDTrack(Common::BitBuffer& msg);
-		void readRegularWeaponAnim(Common::BitBuffer& msg);
-		void readRegularDecalName(Common::BitBuffer& msg);
-		void readRegularRoomType(Common::BitBuffer& msg);
-		void readRegularUserMsg(Common::BitBuffer& msg);
-		void readRegularPacketEntities(Common::BitBuffer& msg, bool delta);
-		void readRegularResourceList(Common::BitBuffer& msg);
-		void readRegularMoveVars(Common::BitBuffer& msg);
-		void readRegularResourceRequest(Common::BitBuffer& msg);
-		void readFileTxferFailed(Common::BitBuffer& msg);
-		void readRegularHLTV(Common::BitBuffer& msg);
-		void readRegularDirector(Common::BitBuffer& msg);
-		void readRegularVoiceInit(Common::BitBuffer& msg);
-		void readRegularSendExtraInfo(Common::BitBuffer& msg);
-		void readRegularResourceLocation(Common::BitBuffer& msg);
-		void readRegularCVarValue(Common::BitBuffer& msg);
-		void readRegularCVarValue2(Common::BitBuffer& msg);
+		void readRegularDisconnect(BitBuffer& msg);
+		void readRegularEvent(BitBuffer& msg);
+		void readRegularVersion(BitBuffer& msg);
+		void readRegularSetView(BitBuffer& msg);
+		void readRegularSound(BitBuffer& msg);
+		void readRegularTime(BitBuffer& msg);
+		void readRegularPrint(BitBuffer& msg);
+		void readRegularStuffText(BitBuffer& msg);
+		void readRegularAngle(BitBuffer& msg);
+		void readRegularServerInfo(BitBuffer& msg);
+		void readRegularLightStyle(BitBuffer& msg);
+		void readRegularUserInfo(BitBuffer& msg);
+		void readRegularDeltaDescription(BitBuffer& msg);
+		void readRegularClientData(BitBuffer& msg);
+		void readRegularPings(BitBuffer& msg);
+		void readRegularEventReliable(BitBuffer& msg);
+		void readRegularSpawnBaseline(BitBuffer& msg);
+		void readRegularTempEntity(BitBuffer& msg);
+		void readRegularSignonNum(BitBuffer& msg);
+		void readRegularStaticSound(BitBuffer& msg);
+		void readRegularCDTrack(BitBuffer& msg);
+		void readRegularWeaponAnim(BitBuffer& msg);
+		void readRegularDecalName(BitBuffer& msg);
+		void readRegularRoomType(BitBuffer& msg);
+		void readRegularUserMsg(BitBuffer& msg);
+		void readRegularPacketEntities(BitBuffer& msg, bool delta);
+		void readRegularResourceList(BitBuffer& msg);
+		void readRegularMoveVars(BitBuffer& msg);
+		void readRegularResourceRequest(BitBuffer& msg);
+		void readFileTxferFailed(BitBuffer& msg);
+		void readRegularHLTV(BitBuffer& msg);
+		void readRegularDirector(BitBuffer& msg);
+		void readRegularVoiceInit(BitBuffer& msg);
+		void readRegularSendExtraInfo(BitBuffer& msg);
+		void readRegularResourceLocation(BitBuffer& msg);
+		void readRegularCVarValue(BitBuffer& msg);
+		void readRegularCVarValue2(BitBuffer& msg);
 #pragma endregion
 
 #pragma region write
 	private:
-		void writeRegularMessages(Common::BitBuffer& msg);
+		void writeRegularMessages(BitBuffer& msg);
 
-		void writeRegularMove(Common::BitBuffer& msg);
-		void writeRegularDelta(Common::BitBuffer& msg);
-		void writeRegularFileConsistency(Common::BitBuffer& msg);
+		void writeRegularMove(BitBuffer& msg);
+		void writeRegularDelta(BitBuffer& msg);
+		void writeRegularFileConsistency(BitBuffer& msg);
 #pragma endregion
 
 	private: // svc_serverinfo // TODO: make as structure

@@ -20,7 +20,7 @@ std::string* BSPFile::Entity::getValueOf(std::string_view field)
 
 void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 {
-	Common::BitBuffer bf;
+	BitBuffer bf;
 	auto asset = Platform::Asset(fileName);
 
 	bf.write(asset.getMemory(), asset.getSize());

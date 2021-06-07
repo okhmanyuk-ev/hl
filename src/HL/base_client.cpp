@@ -22,9 +22,9 @@ using namespace HL;
 BaseClient::BaseClient(bool hltv) : Networking(),
 	mHLTV(hltv),
 	mChannel(getSocket(),
-		[&](Common::BitBuffer& msg) { readRegularMessages(msg); },
-		[&](Common::BitBuffer& msg) { writeRegularMessages(msg); },
-		[&](std::string_view name, Common::BitBuffer& msg) { receiveFile(name, msg); })
+		[&](BitBuffer& msg) { readRegularMessages(msg); },
+		[&](BitBuffer& msg) { writeRegularMessages(msg); },
+		[&](std::string_view name, BitBuffer& msg) { receiveFile(name, msg); })
 {
 	CONSOLE->registerCommand("connect", "connect to the server", { "address" },
 		CMD_METHOD(onConnect));
@@ -206,7 +206,7 @@ void BaseClient::readConnectionlessReject(Network::Packet& packet)
 	CONSOLE_DEVICE->writeLine("connection rejected, reason: " + Common::BufferHelpers::ReadString(packet.buf));
 }
 
-void BaseClient::readRegularMessages(Common::BitBuffer& msg)
+void BaseClient::readRegularMessages(BitBuffer& msg)
 {
 	while (msg.hasRemaining())
 	{
@@ -433,7 +433,7 @@ void BaseClient::readRegularMessages(Common::BitBuffer& msg)
 	}
 }
 
-void BaseClient::readRegularGameMessage(Common::BitBuffer& msg, uint8_t index)
+void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 {
 	assert(mGameMessages.count(index) != 0);
 
@@ -446,7 +446,7 @@ void BaseClient::readRegularGameMessage(Common::BitBuffer& msg, uint8_t index)
 	if (size == 255)
 		size = msg.read<uint8_t>();
 
-	Common::BitBuffer buf;
+	BitBuffer buf;
 	buf.setSize(size);
 	msg.read(buf.getMemory(), size);
 
@@ -456,7 +456,7 @@ void BaseClient::readRegularGameMessage(Common::BitBuffer& msg, uint8_t index)
 	}
 }
 
-void BaseClient::receiveFile(std::string_view fileName, Common::BitBuffer& msg)
+void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
 {
 	Platform::Asset::Write(mGameDir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
@@ -465,13 +465,13 @@ void BaseClient::receiveFile(std::string_view fileName, Common::BitBuffer& msg)
 		Common::Helpers::BytesToNiceString(msg.getSize()) /*+ ", Left: " + std::to_string(mDownloadQueue.size())*/);
 }
 
-void BaseClient::readRegularDisconnect(Common::BitBuffer& msg)
+void BaseClient::readRegularDisconnect(BitBuffer& msg)
 {
 	auto reason = Common::BufferHelpers::ReadString(msg);
 	CONSOLE_DEVICE->writeLine(reason);
 }
 
-void BaseClient::readRegularEvent(Common::BitBuffer& msg)
+void BaseClient::readRegularEvent(BitBuffer& msg)
 {
 	auto count = msg.readBits(5);
 
@@ -501,17 +501,17 @@ void BaseClient::readRegularEvent(Common::BitBuffer& msg)
 	msg.alignByteBoundary();
 }
 
-void BaseClient::readRegularVersion(Common::BitBuffer& msg)
+void BaseClient::readRegularVersion(BitBuffer& msg)
 {
 	auto version = msg.read<int32_t>();
 }
 
-void BaseClient::readRegularSetView(Common::BitBuffer& msg)
+void BaseClient::readRegularSetView(BitBuffer& msg)
 {
 	int16_t value = msg.read<int16_t>();
 }
 
-void BaseClient::readRegularSound(Common::BitBuffer& msg)
+void BaseClient::readRegularSound(BitBuffer& msg)
 {
 	Protocol::Sound sound;
 
@@ -545,18 +545,18 @@ void BaseClient::readRegularSound(Common::BitBuffer& msg)
 	// onSound(sound); // TODO: event
 }
 
-void BaseClient::readRegularTime(Common::BitBuffer& msg)
+void BaseClient::readRegularTime(BitBuffer& msg)
 {
 	mTime = msg.read<float>();
 }
 
-void BaseClient::readRegularPrint(Common::BitBuffer& msg)
+void BaseClient::readRegularPrint(BitBuffer& msg)
 {
 	auto text = Common::BufferHelpers::ReadString(msg);
 	CONSOLE_DEVICE->writeLine(text);
 }
 
-void BaseClient::readRegularStuffText(Common::BitBuffer& msg)
+void BaseClient::readRegularStuffText(BitBuffer& msg)
 {
 	auto text = Common::BufferHelpers::ReadString(msg);
 	auto cmds = Console::System::ParseCommandLine(text);
@@ -585,14 +585,14 @@ void BaseClient::readRegularStuffText(Common::BitBuffer& msg)
 	}
 }
 
-void BaseClient::readRegularAngle(Common::BitBuffer& msg)
+void BaseClient::readRegularAngle(BitBuffer& msg)
 {
 	float x = Common::BufferHelpers::ReadHiResAngle(msg);
 	float y = Common::BufferHelpers::ReadHiResAngle(msg);
 	float z = Common::BufferHelpers::ReadHiResAngle(msg);
 }
 
-void BaseClient::readRegularServerInfo(Common::BitBuffer& msg)
+void BaseClient::readRegularServerInfo(BitBuffer& msg)
 {
 	int protocol = msg.read<int32_t>(); // must be Protocol.Version
 	mSpawnCount = msg.read<int32_t>();
@@ -634,7 +634,7 @@ void BaseClient::readRegularServerInfo(Common::BitBuffer& msg)
 	sendCommand("sendres");
 }
 
-void BaseClient::readRegularLightStyle(Common::BitBuffer& msg)
+void BaseClient::readRegularLightStyle(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
 
@@ -644,7 +644,7 @@ void BaseClient::readRegularLightStyle(Common::BitBuffer& msg)
 	m_LightStyles[index] = Common::BufferHelpers::ReadString(msg);
 }
 
-void BaseClient::readRegularUserInfo(Common::BitBuffer& msg)
+void BaseClient::readRegularUserInfo(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
 	auto userId = msg.read<int32_t>();
@@ -655,7 +655,7 @@ void BaseClient::readRegularUserInfo(Common::BitBuffer& msg)
 	mPlayerUserInfos[index] = info;
 }
 
-void BaseClient::readRegularDeltaDescription(Common::BitBuffer& msg)
+void BaseClient::readRegularDeltaDescription(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
 	auto fieldsCount = msg.readBits(16);
@@ -663,7 +663,7 @@ void BaseClient::readRegularDeltaDescription(Common::BitBuffer& msg)
 	msg.alignByteBoundary();
 }
 
-void BaseClient::readRegularClientData(Common::BitBuffer& msg)
+void BaseClient::readRegularClientData(BitBuffer& msg)
 {
 	if (mHLTV)
 		return;
@@ -686,7 +686,7 @@ void BaseClient::readRegularClientData(Common::BitBuffer& msg)
 	msg.alignByteBoundary();
 }
 
-void BaseClient::readRegularPings(Common::BitBuffer& msg)
+void BaseClient::readRegularPings(BitBuffer& msg)
 {
 	while (msg.readBit())
 	{
@@ -697,7 +697,7 @@ void BaseClient::readRegularPings(Common::BitBuffer& msg)
 	msg.alignByteBoundary();
 }
 
-void BaseClient::readRegularEventReliable(Common::BitBuffer& msg)
+void BaseClient::readRegularEventReliable(BitBuffer& msg)
 {
 	Protocol::Event evt;
 
@@ -716,7 +716,7 @@ void BaseClient::readRegularEventReliable(Common::BitBuffer& msg)
 	// onEvent(evt);
 }
 
-void BaseClient::readRegularSpawnBaseline(Common::BitBuffer& msg)
+void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)
 {
 	while (msg.read<uint16_t>() != 0xFFFF)
 	{
@@ -738,7 +738,7 @@ void BaseClient::readRegularSpawnBaseline(Common::BitBuffer& msg)
 	//for (auto& extra : mExtraBaselines)
 	//	mDelta.readEntityNormal(msg, extra);
 
-	for (int i = 0; i < msg.readBits(6); i++)
+	for (uint32_t i = 0; i < msg.readBits(6); i++)
 		mDelta.readEntityNormal(msg, mExtraBaselines[i]);
 
 	msg.alignByteBoundary();
@@ -752,7 +752,7 @@ void BaseClient::readRegularSpawnBaseline(Common::BitBuffer& msg)
 	mDeltaEntities = mBaselines;
 }
 
-void BaseClient::readRegularTempEntity(Common::BitBuffer& msg)
+void BaseClient::readRegularTempEntity(BitBuffer& msg)
 {
 	static const int TE_MAX = 128;
 
@@ -863,7 +863,7 @@ void BaseClient::readRegularTempEntity(Common::BitBuffer& msg)
 	}
 }
 
-void BaseClient::readRegularSignonNum(Common::BitBuffer& msg)
+void BaseClient::readRegularSignonNum(BitBuffer& msg)
 {
 	// if peek uint8 < current signon then disconnect
 
@@ -873,7 +873,7 @@ void BaseClient::readRegularSignonNum(Common::BitBuffer& msg)
 		sendCommand("sendents");
 }
 
-void BaseClient::readRegularStaticSound(Common::BitBuffer& msg)
+void BaseClient::readRegularStaticSound(BitBuffer& msg)
 {
 	Protocol::Sound sound;
 		
@@ -891,19 +891,19 @@ void BaseClient::readRegularStaticSound(Common::BitBuffer& msg)
 	// onSound(sound); // TODO: it is ambient sound, lua code need to know this
 }
 
-void BaseClient::readRegularCDTrack(Common::BitBuffer& msg)
+void BaseClient::readRegularCDTrack(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
 	auto loop = msg.read<uint8_t>();
 }
 
-void BaseClient::readRegularWeaponAnim(Common::BitBuffer& msg)
+void BaseClient::readRegularWeaponAnim(BitBuffer& msg)
 {
 	auto seq = msg.read<uint8_t>();
 	auto group = msg.read<uint8_t>();
 }
 
-void BaseClient::readRegularDecalName(Common::BitBuffer& msg)
+void BaseClient::readRegularDecalName(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
@@ -911,14 +911,14 @@ void BaseClient::readRegularDecalName(Common::BitBuffer& msg)
 	CONSOLE_DEVICE->writeLine("DecalIndex: " + std::to_string(index) + ", DecalName: " + name, Console::Color::Red);
 }
 
-void BaseClient::readRegularRoomType(Common::BitBuffer& msg)
+void BaseClient::readRegularRoomType(BitBuffer& msg)
 {
 	auto room = msg.read<int16_t>();
 
 	CONSOLE_DEVICE->writeLine("RoomType: " + std::to_string(room), Console::Color::Red);
 }
 
-void BaseClient::readRegularUserMsg(Common::BitBuffer& msg)
+void BaseClient::readRegularUserMsg(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
 	
@@ -930,7 +930,7 @@ void BaseClient::readRegularUserMsg(Common::BitBuffer& msg)
 	mGameMessages[index].name = name;
 }
 
-void BaseClient::readRegularPacketEntities(Common::BitBuffer& msg, bool delta)
+void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 {
 	if (mSignonNum == 1)
 	{
@@ -1048,7 +1048,7 @@ void BaseClient::readRegularPacketEntities(Common::BitBuffer& msg, bool delta)
 	msg.alignByteBoundary();
 }
 
-void BaseClient::readRegularResourceList(Common::BitBuffer& msg)
+void BaseClient::readRegularResourceList(BitBuffer& msg)
 {
 	mResources.resize(msg.readBits(12));
 
@@ -1108,7 +1108,7 @@ void BaseClient::readRegularResourceList(Common::BitBuffer& msg)
 	verifyResources();
 }
 
-void BaseClient::readRegularMoveVars(Common::BitBuffer& msg)
+void BaseClient::readRegularMoveVars(BitBuffer& msg)
 {
 	float gravity = msg.read<float>();
 	float stopSpeed = msg.read<float>();
@@ -1138,7 +1138,7 @@ void BaseClient::readRegularMoveVars(Common::BitBuffer& msg)
 	std::string skyName = Common::BufferHelpers::ReadString(msg);
 }
 
-void BaseClient::readRegularResourceRequest(Common::BitBuffer& msg)
+void BaseClient::readRegularResourceRequest(BitBuffer& msg)
 {
 	int spawncount = msg.read<int32_t>();
 	msg.read<int32_t>(); // rehlds says that it will always 0
@@ -1165,25 +1165,25 @@ void BaseClient::readRegularResourceRequest(Common::BitBuffer& msg)
 		*/
 }
 
-void BaseClient::readFileTxferFailed(Common::BitBuffer& msg)
+void BaseClient::readFileTxferFailed(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
 	CONSOLE_DEVICE->writeLine("failed to download file: " + name, Console::Color::Red);
 }
 
-void BaseClient::readRegularHLTV(Common::BitBuffer& msg)
+void BaseClient::readRegularHLTV(BitBuffer& msg)
 {
 	CONSOLE_DEVICE->writeLine("SVC_HLTV was received", Console::Color::Red);
 }
 
-void BaseClient::readRegularDirector(Common::BitBuffer& msg)
+void BaseClient::readRegularDirector(BitBuffer& msg)
 {
 	msg.seek(msg.read<uint8_t>());
 
 	//mConsoleDevice.writeLine("SVC_DIRECTOR was received", Console::Color::Red);
 }
 
-void BaseClient::readRegularVoiceInit(Common::BitBuffer& msg)
+void BaseClient::readRegularVoiceInit(BitBuffer& msg)
 {
 	auto codec = Common::BufferHelpers::ReadString(msg);
 	auto quality = msg.read<uint8_t>(); // if protocol > 46
@@ -1191,24 +1191,24 @@ void BaseClient::readRegularVoiceInit(Common::BitBuffer& msg)
 	CONSOLE_DEVICE->writeLine("voice codec: " + codec, Console::Color::Red);
 }
 
-void BaseClient::readRegularSendExtraInfo(Common::BitBuffer& msg)
+void BaseClient::readRegularSendExtraInfo(BitBuffer& msg)
 {
 	auto fallbackDir = Common::BufferHelpers::ReadString(msg);
 	auto allowCheats = msg.read<uint8_t>();
 }
 
-void BaseClient::readRegularResourceLocation(Common::BitBuffer& msg)
+void BaseClient::readRegularResourceLocation(BitBuffer& msg)
 {
 	auto downloadUrl = Common::BufferHelpers::ReadString(msg);
 }
 
-void BaseClient::readRegularCVarValue(Common::BitBuffer& msg)
+void BaseClient::readRegularCVarValue(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
 	CONSOLE_DEVICE->writeLine("SVC_SENDCVARVALUE: " + name, Console::Color::Red);
 }
 
-void BaseClient::readRegularCVarValue2(Common::BitBuffer& msg)
+void BaseClient::readRegularCVarValue2(BitBuffer& msg)
 {
 	auto id = msg.read<uint32_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
@@ -1218,7 +1218,7 @@ void BaseClient::readRegularCVarValue2(Common::BitBuffer& msg)
 #pragma endregion
 
 #pragma region write
-void BaseClient::writeRegularMessages(Common::BitBuffer& msg)
+void BaseClient::writeRegularMessages(BitBuffer& msg)
 {
 	if (m_ResourcesVerifying && mDownloadQueue.size() == 0)
 	{
@@ -1247,7 +1247,7 @@ void BaseClient::writeRegularMessages(Common::BitBuffer& msg)
 	}
 }
 
-void BaseClient::writeRegularMove(Common::BitBuffer& msg)
+void BaseClient::writeRegularMove(BitBuffer& msg)
 {
 	size_t o = msg.getSize();
 
@@ -1280,13 +1280,13 @@ void BaseClient::writeRegularMove(Common::BitBuffer& msg)
 		mChannel.getOutgoingSequence());
 }
 	
-void BaseClient::writeRegularDelta(Common::BitBuffer& msg)
+void BaseClient::writeRegularDelta(BitBuffer& msg)
 {
 	msg.write<uint8_t>((uint8_t)Protocol::Client::Message::Delta);
 	msg.write<uint8_t>(m_DeltaSequence);
 }
 
-void BaseClient::writeRegularFileConsistency(Common::BitBuffer& msg)
+void BaseClient::writeRegularFileConsistency(BitBuffer& msg)
 {
 	size_t o = msg.getSize();
 
@@ -1470,7 +1470,7 @@ void BaseClient::sendCommand(std::string_view command)
 		return;
 	}
 
-	Common::BitBuffer buf;
+	BitBuffer buf;
 
 	buf.write<uint8_t>((uint8_t)Protocol::Client::Message::StringCmd);
 	Common::BufferHelpers::WriteString(buf, command);
