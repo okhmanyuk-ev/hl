@@ -44,7 +44,7 @@ namespace HL
 		auto total = packet.buf.readBits(4);
 		auto count = packet.buf.readBits(4);
 
-		SplitBuffer* sb = nullptr;
+		std::shared_ptr<SplitBuffer> sb = nullptr;
 
 		// search split buffer
 
@@ -61,7 +61,7 @@ namespace HL
 
 		if (sb == nullptr)
 		{
-			sb = new SplitBuffer();
+			sb = std::make_shared<SplitBuffer>();
 
 			sb->index = index;
 			sb->frags.resize(total);
@@ -110,8 +110,6 @@ namespace HL
 			// remove completed split buf
 
 			mSplitBuffers.remove(sb);
-
-			delete sb;
 		}
 	}
 

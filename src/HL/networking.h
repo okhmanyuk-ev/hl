@@ -46,6 +46,6 @@ namespace HL
 			std::vector<Fragment> frags;
 		};
 
-		std::list<SplitBuffer*> mSplitBuffers;
+		std::list<std::shared_ptr<SplitBuffer>> mSplitBuffers;
 	};
 }
