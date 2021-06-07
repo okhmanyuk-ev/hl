@@ -20,23 +20,13 @@
 using namespace HL;
 
 BaseClient::BaseClient(bool hltv) : Networking(),
-	mHLTV(hltv),
-	mChannel(getSocket(),
-		[&](BitBuffer& msg) { readRegularMessages(msg); },
-		[&](BitBuffer& msg) { writeRegularMessages(msg); },
-		[&](std::string_view name, BitBuffer& msg) { receiveFile(name, msg); })
+	mHLTV(hltv)
 {
-	CONSOLE->registerCommand("connect", "connect to the server", { "address" },
-		CMD_METHOD(onConnect));
-
-	CONSOLE->registerCommand("disconnect", "disconnect from server",
-		CMD_METHOD(onDisconnect));
-
-	CONSOLE->registerCommand("cmd", "send command to server",
-		CMD_METHOD(onCmd));
-
-	CONSOLE->registerCommand("fullserverinfo", "receiving from server", { "text" },
-		CMD_METHOD(onFullServerInfo));
+	CONSOLE->registerCommand("connect", "connect to the server", { "address" }, CMD_METHOD(onConnect));
+	CONSOLE->registerCommand("disconnect", "disconnect from server", CMD_METHOD(onDisconnect));
+	CONSOLE->registerCommand("retry", "connect to the last server", CMD_METHOD(onRetry));
+	CONSOLE->registerCommand("cmd", "send command to server", CMD_METHOD(onCmd));
+	CONSOLE->registerCommand("fullserverinfo", "receiving from server", { "text" }, CMD_METHOD(onFullServerInfo));
 
 	/*
 
@@ -138,7 +128,8 @@ void BaseClient::readRegularPacket(Network::Packet& packet)
 	if (mServerAdr != packet.adr)
 		return;
 
-	mChannel.process(packet.buf);
+	assert(mChannel);
+	mChannel->process(packet.buf);
 }
 
 void BaseClient::readConnectionlessChallenge(Network::Packet& packet)
@@ -190,11 +181,15 @@ void BaseClient::readConnectionlessAccepted(Network::Packet& packet)
 
 	if (mServerAdr != packet.adr)
 		return;
+	
+	mChannel.emplace(getSocket(),
+		[&](auto& msg) { readRegularMessages(msg); },
+		[&](auto& msg) { writeRegularMessages(msg); },
+		[&](auto name, auto& msg) { receiveFile(name, msg); });
+	
+	mChannel->setAddress(mServerAdr.value());
 
-	mChannel.setActive(true);
-	mChannel.setAddress(mServerAdr);
-
-	CONSOLE_DEVICE->writeLine("connection accepted");
+	LOG("connection accepted");
 
 	mState = State::Connected;
 
@@ -203,7 +198,7 @@ void BaseClient::readConnectionlessAccepted(Network::Packet& packet)
 
 void BaseClient::readConnectionlessReject(Network::Packet& packet)
 {
-	CONSOLE_DEVICE->writeLine("connection rejected, reason: " + Common::BufferHelpers::ReadString(packet.buf));
+	LOG("connection rejected, reason: " + Common::BufferHelpers::ReadString(packet.buf));
 }
 
 void BaseClient::readRegularMessages(BitBuffer& msg)
@@ -220,16 +215,16 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 
 		switch (static_cast<Protocol::Server::Message>(index))
 		{
-		//case Protocol::Server::Message::Bad:
-			// disconnect
-			//	break;
+		case Protocol::Server::Message::Bad:
+			disconnect("svc_bad");
+			return;
 
 		case Protocol::Server::Message::Nop:
 			break;
 
 		case Protocol::Server::Message::Disconnect:
 			readRegularDisconnect(msg);
-			break;
+			return;
 
 		case Protocol::Server::Message::Event:
 			readRegularEvent(msg);
@@ -426,8 +421,7 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 			break;
 
 		default:
-			// disconnect here, parsing error
-			CONSOLE_DEVICE->writeLine("unknown svc: " + std::to_string(index), Console::Color::Red);
+			LOG("unknown svc: " + std::to_string(index)); // TODO: should disconnect 
 			return;
 		}
 	}
@@ -461,14 +455,14 @@ void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
 	Platform::Asset::Write(mGameDir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
 	
-	CONSOLE_DEVICE->writeLine("received: \"" + std::string(fileName) + "\", size: " +
+	LOG("received: \"" + std::string(fileName) + "\", size: " +
 		Common::Helpers::BytesToNiceString(msg.getSize()) /*+ ", Left: " + std::to_string(mDownloadQueue.size())*/);
 }
 
 void BaseClient::readRegularDisconnect(BitBuffer& msg)
 {
 	auto reason = Common::BufferHelpers::ReadString(msg);
-	CONSOLE_DEVICE->writeLine(reason);
+	disconnect(reason);
 }
 
 void BaseClient::readRegularEvent(BitBuffer& msg)
@@ -553,7 +547,7 @@ void BaseClient::readRegularTime(BitBuffer& msg)
 void BaseClient::readRegularPrint(BitBuffer& msg)
 {
 	auto text = Common::BufferHelpers::ReadString(msg);
-	CONSOLE_DEVICE->writeLine(text);
+	LOG(text);
 }
 
 void BaseClient::readRegularStuffText(BitBuffer& msg)
@@ -744,10 +738,10 @@ void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)
 	msg.alignByteBoundary();
 
 	if (mBaselines.size() > 0)
-		CONSOLE_DEVICE->writeLine(std::to_string(mBaselines.size()) + " baseline entities received");
+		LOGF("{} baseline entities received", mBaselines.size());
 
 	if (mExtraBaselines.size() > 0)
-		CONSOLE_DEVICE->writeLine(std::to_string(mExtraBaselines.size()) + " extra baseline entities received");
+		LOGF("{} extra baseline entities received", mExtraBaselines.size());
 
 	mDeltaEntities = mBaselines;
 }
@@ -908,14 +902,14 @@ void BaseClient::readRegularDecalName(BitBuffer& msg)
 	auto index = msg.read<uint8_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
 
-	CONSOLE_DEVICE->writeLine("DecalIndex: " + std::to_string(index) + ", DecalName: " + name, Console::Color::Red);
+	LOGC("DecalIndex: " + std::to_string(index) + ", DecalName: " + name, Console::Color::Red);
 }
 
 void BaseClient::readRegularRoomType(BitBuffer& msg)
 {
 	auto room = msg.read<int16_t>();
 
-	CONSOLE_DEVICE->writeLine("RoomType: " + std::to_string(room), Console::Color::Red);
+	LOGC("RoomType: " + std::to_string(room), Console::Color::Red);
 }
 
 void BaseClient::readRegularUserMsg(BitBuffer& msg)
@@ -966,7 +960,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 	{
 		auto mask = msg.read<uint8_t>();
 
-		m_DeltaSequence = mChannel.getIncomingSequence() & 0xFF; // TODO: only in delta ?
+		m_DeltaSequence = mChannel->getIncomingSequence() & 0xFF; // TODO: only in delta ?
 
 		while (msg.read<uint16_t>() != 0)
 		{
@@ -980,7 +974,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				if (mEntities.count(index) == 0)
 				{
-					CONSOLE_DEVICE->writeLine("trying to delete non existing entity " + std::to_string(index), Console::Color::Red);
+					LOGC("trying to delete non existing entity " + std::to_string(index), Console::Color::Red);
 				}
 				mEntities.erase(index);
 				continue;
@@ -995,8 +989,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				auto extra_index = msg.readBits(6);
 				assert(mExtraBaselines.count(extra_index) > 0);
-				CONSOLE_DEVICE->writeLine("using extra baseline " + std::to_string(extra_index) +
-					" for entity " + std::to_string(index));
+				LOGF("using extra baseline {} for entity {}", extra_index, index);
 				entity = mExtraBaselines[extra_index];
 			}
 
@@ -1004,7 +997,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 		}
 
 		if (mEntities.size() != count)
-			CONSOLE_DEVICE->writeLine("entities size mismatch: have " + std::to_string(mEntities.size()) + ", must be " + std::to_string(count), Console::Color::Red);
+			LOGCF("entities size mismatch: have {}, must be {}", Console::Color::Red, mEntities.size(), count);
 	}
 	else
 	{
@@ -1026,16 +1019,14 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				auto extra_index = msg.readBits(6);
 				assert(mExtraBaselines.count(extra_index) > 0);
-				CONSOLE_DEVICE->writeLine("using extra baseline " + std::to_string(extra_index) +
-					" for entity " + std::to_string(index));
+				LOGF("using extra baseline {} for entity {}", extra_index, index);
 				entity = mExtraBaselines[extra_index];
 			}
 			else if (msg.readBit())
 			{
 				auto base_index = msg.readBits(6);
 				assert(mBaselines.count(base_index) > 0);
-				CONSOLE_DEVICE->writeLine("using baseline " + std::to_string(base_index) +
-					" for entity " + std::to_string(index));
+				LOGF("using baseline {} for entity {}", base_index, index);
 				entity = mBaselines[base_index];
 			}
 
@@ -1090,7 +1081,7 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 
 	msg.alignByteBoundary();
 
-	CONSOLE_DEVICE->writeLine(std::to_string(mResources.size()) + " resources received");
+	LOGF("{} resources received", mResources.size());
 
 	// fix sound directory
 
@@ -1168,12 +1159,12 @@ void BaseClient::readRegularResourceRequest(BitBuffer& msg)
 void BaseClient::readFileTxferFailed(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
-	CONSOLE_DEVICE->writeLine("failed to download file: " + name, Console::Color::Red);
+	LOGC("failed to download file: " + name, Console::Color::Red);
 }
 
 void BaseClient::readRegularHLTV(BitBuffer& msg)
 {
-	CONSOLE_DEVICE->writeLine("SVC_HLTV was received", Console::Color::Red);
+	LOGC("SVC_HLTV was received", Console::Color::Red);
 }
 
 void BaseClient::readRegularDirector(BitBuffer& msg)
@@ -1188,7 +1179,7 @@ void BaseClient::readRegularVoiceInit(BitBuffer& msg)
 	auto codec = Common::BufferHelpers::ReadString(msg);
 	auto quality = msg.read<uint8_t>(); // if protocol > 46
 
-	CONSOLE_DEVICE->writeLine("voice codec: " + codec, Console::Color::Red);
+	LOGC("voice codec: " + codec, Console::Color::Red);
 }
 
 void BaseClient::readRegularSendExtraInfo(BitBuffer& msg)
@@ -1205,14 +1196,14 @@ void BaseClient::readRegularResourceLocation(BitBuffer& msg)
 void BaseClient::readRegularCVarValue(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
-	CONSOLE_DEVICE->writeLine("SVC_SENDCVARVALUE: " + name, Console::Color::Red);
+	LOGC("SVC_SENDCVARVALUE: " + name, Console::Color::Red);
 }
 
 void BaseClient::readRegularCVarValue2(BitBuffer& msg)
 {
 	auto id = msg.read<uint32_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
-	CONSOLE_DEVICE->writeLine("SVC_SENDCVARVALUE2: " + std::to_string(id) + ", " + name, Console::Color::Red);
+	LOGC("SVC_SENDCVARVALUE2: " + std::to_string(id) + ", " + name, Console::Color::Red);
 }
 
 #pragma endregion
@@ -1228,13 +1219,13 @@ void BaseClient::writeRegularMessages(BitBuffer& msg)
 		if (m_ConfirmationRequired)
 			writeRegularFileConsistency(msg);
 		else
-			CONSOLE_DEVICE->writeLine("confirmation of resources isn't required");
+			LOG("confirmation of resources isn't required");
 
 		int crc = mMapCrc;
 		Encoder::Munge2(&crc, 4, (-1 - mSpawnCount) & 0xFF);
 		sendCommand("spawn " + std::to_string(mSpawnCount) + " " + std::to_string(crc));
 
-		mChannel.createNormalFragments(/*128 bytes per fragment, without compression*/);
+		mChannel->createNormalFragments(/*128 bytes per fragment, without compression*/);
 	}
 
 	if (mSignonNum == 2)
@@ -1274,10 +1265,10 @@ void BaseClient::writeRegularMove(BitBuffer& msg)
 	*(uint8_t*)((size_t)msg.getMemory() + o + 1) = (uint8_t)(msg.getSize() - o - 3);
 		
 	*(uint8_t*)((size_t)msg.getMemory() + o + 2) = (uint8_t)Encoder::BlockSequenceCRCByte(
-		(void*)((size_t)msg.getMemory() + o + 3), msg.getSize() - o - 3, mChannel.getOutgoingSequence());
+		(void*)((size_t)msg.getMemory() + o + 3), msg.getSize() - o - 3, mChannel->getOutgoingSequence());
 		
 	Encoder::Munge((void*)((size_t)msg.getMemory() + o + 3), msg.getSize() - o - 3,
-		mChannel.getOutgoingSequence());
+		mChannel->getOutgoingSequence());
 }
 	
 void BaseClient::writeRegularDelta(BitBuffer& msg)
@@ -1320,43 +1311,44 @@ void BaseClient::writeRegularFileConsistency(BitBuffer& msg)
 	msg.writeBit(false);
 	msg.alignByteBoundary();
 
-	CONSOLE_DEVICE->writeLine(std::to_string(c) + " resources confirmed");
+	LOGF("{} resources confirmed", c);
 }
 #pragma endregion
 
-
-
 void BaseClient::onConnect(CON_ARGS)
 {
-	Network::Packet packet;
+	Network::Address address;
 
 	try
 	{
-		packet.adr = Network::Address(CON_ARG(0));
+		address = Network::Address(CON_ARG(0));
 	}
 	catch (const std::exception& e)
 	{
-		CONSOLE_DEVICE->writeLine(e.what());
+		LOG(e.what());
 		return;
 	}
 
-	if (packet.adr.port == 0)
-		packet.adr.port = Protocol::DefaultServerPort;
+	if (address.port == 0)
+		address.port = Protocol::DefaultServerPort;
 
-	mServerAdr = packet.adr;
-
-	Common::BufferHelpers::WriteString(packet.buf, "getchallenge steam");
-		
-	sendConnectionlessPacket(packet);
-
-	CONSOLE_DEVICE->writeLine("initializing connection to " + packet.adr.toString());
-
-	mState = State::Challenging;
+	connect(address);
 }
 
 void BaseClient::onDisconnect(CON_ARGS)
 {
-	//
+	// TODO: send signal to server
+	disconnect("client sent drop");
+}
+
+void BaseClient::onRetry(CON_ARGS)
+{
+	if (!mServerAdr.has_value())
+	{
+		LOG("cannot retry, no connection was made");
+		return;
+	}
+	connect(mServerAdr.value());
 }
 
 void BaseClient::onCmd(CON_ARGS)
@@ -1423,7 +1415,7 @@ void BaseClient::verifyResources()
 		sendCommand("dlfile " + resource.name);
 	}
 
-	mChannel.createNormalFragments();
+	mChannel->createNormalFragments();
 }
 
 bool BaseClient::isResourceRequired(const Protocol::Resource& resource)
@@ -1462,11 +1454,11 @@ int BaseClient::getResourceHash(const Protocol::Resource& resource)
 	return *(int*)md5.getdigest();
 }
 
-void BaseClient::sendCommand(std::string_view command)
+void BaseClient::sendCommand(const std::string& command)
 {
 	if (mState < State::Connected)
 	{
-		CONSOLE_DEVICE->writeLine("cannot send \"" + std::string(command) + "\", not connected");
+		LOG("cannot forward \"" + command + "\", not connected");
 		return;
 	}
 
@@ -1475,9 +1467,59 @@ void BaseClient::sendCommand(std::string_view command)
 	buf.write<uint8_t>((uint8_t)Protocol::Client::Message::StringCmd);
 	Common::BufferHelpers::WriteString(buf, command);
 
-	mChannel.addReliableMessage(buf);
+	mChannel->addReliableMessage(buf);
 
-	CONSOLE_DEVICE->writeLine("forward \"" + std::string(command) + "\"");
+	LOG("forward \"" + command + "\"");
+}		
+
+void BaseClient::connect(const Network::Address& address)
+{
+	if (mState != State::Disconnected)
+	{
+		LOG("cannot retry, already connected");
+		return;
+	}
+
+	mServerAdr = address;
+
+	Network::Packet packet;
+	packet.adr = address;
+
+	Common::BufferHelpers::WriteString(packet.buf, "getchallenge steam");
+
+	sendConnectionlessPacket(packet);
+
+	LOG("initializing connection to " + address.toString());
+
+	mState = State::Challenging;
+}
+
+void BaseClient::disconnect(const std::string& reason)
+{
+	mState = State::Disconnected;
+	mChannel.reset();
+
+	m_ResourcesVerifying = false;
+	m_ResourcesVerified = false;
+	m_ConfirmationRequired = false;
+	mDownloadQueue.clear();
+	mDelta.clear();
+	mGameMessages.clear();
+	mTime = 0.0f;
+	m_LightStyles.clear();
+	m_WeaponData.clear();
+	mResources.clear();
+	mEntities.clear();
+	mDeltaEntities.clear();
+	mBaselines.clear();
+	mExtraBaselines.clear();
+	mSignonNum = 0;
+	m_DeltaSequence = 0;
+
+	LOG("disconnected, reason: \"" + reason + "\"");
+
+	if (mDisconnectCallback)
+		mDisconnectCallback(reason);
 }
 
 bool BaseClient::isPlayerIndex(int value) const
@@ -1491,5 +1533,5 @@ void BaseClient::addUserInfo(const std::string& name, const std::string& descrip
 	CONSOLE->registerCVar(name, description, { "str" },
 		getter, setter);
 
-	mUserInfos.push_back({ name, getter });
+	mUserInfos.insert({ name, getter });
 }

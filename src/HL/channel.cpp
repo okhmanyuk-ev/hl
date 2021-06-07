@@ -10,53 +10,16 @@ using namespace HL;
 
 Channel::Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) :
 	mSocket(socket),
-		
 	mReadHandler(readHandler), 
 	mWriteHandler(writeHandler),
-	mFileHandler(fileHandler),
-
-	mReliableMessages()
+	mFileHandler(fileHandler)
 {
-	setActive(false);
-
 	mTimer.setInterval(Clock::FromMilliseconds(10));
 	mTimer.setCallback(std::bind(&Channel::transmit, this));
 }
 
-Channel::~Channel()
-{
-	//
-}
-
-void Channel::clear()
-{
-	mIncomingSequence = 0;
-	mIncomingAcknowledgement = 0;
-	mIncomingReliable = false;
-	mIncomingTime = Clock::Now();
-
-	mOutgoingSequence = 0;
-	mOutgoingReliable = false;
-
-	mReliableSequence = 0;
-
-	mLatency = Clock::Duration();
-	mLatencySequence = 0;
-	mLatencyTime = Clock::Now();
-	mLatencyReady = true;
-
-	//
-
-	mReliableMessages.clear(); // TODO: need to free mem
-	mNormalFragBuffers.clear(); // TODO: need to free mem
-	mFileFragBuffers.clear(); // TODO: same
-}
-
 void Channel::transmit()
 {
-	if (!mActive)
-		return;
-
 	mOutgoingSequence++;
 		
 	bool hasFragments = false;
@@ -114,7 +77,7 @@ void Channel::writeReliableMessages(BitBuffer& msg)
 			
 		first = false; 
 
-		Common::BufferHelpers::WriteToBuffer(*message, msg);
+		Common::BufferHelpers::WriteToBuffer(message, msg);
 
 		mReliableSent++;
 	}
@@ -174,7 +137,6 @@ void Channel::process(BitBuffer& msg)
 
 			while (mReliableSent > 0)
 			{
-				delete *mReliableMessages.begin();
 				mReliableMessages.pop_front();
 				mReliableSent--;
 			}
@@ -214,7 +176,7 @@ void Channel::readNormalFragments(BitBuffer& msg)
 
 	// mConsole->writeLine("normal fragment " + std::to_string(index) + " (" + std::to_string(count) + "/" + std::to_string(total) + ")");
 
-	FragBuffer* fb = nullptr;
+	std::shared_ptr<FragBuffer> fb = nullptr;
 		
 	// search frag buffer
 
@@ -231,7 +193,7 @@ void Channel::readNormalFragments(BitBuffer& msg)
 
 	if (fb == nullptr)
 	{
-		fb = new FragBuffer();
+		fb = std::make_shared<FragBuffer>();
 
 		fb->index = index;
 		fb->frags.resize(total);
@@ -317,8 +279,6 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		// remove completed fragbuf
 
 		mNormalFragBuffers.remove(fb);
-
-		delete fb;
 	}
 }
 
@@ -334,7 +294,7 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 	//mConsole->writeLine("file fragment " + std::to_string(index) + " (" + std::to_string(count) + "/" + std::to_string(total) + ")");
 
-	FragBuffer* fb = nullptr;
+	std::shared_ptr<FragBuffer> fb = nullptr;
 
 	for (auto& fragBuf : mFileFragBuffers)
 	{
@@ -349,7 +309,7 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 	if (fb == nullptr)
 	{
-		fb = new FragBuffer();
+		fb = std::make_shared<FragBuffer>();
 
 		fb->index = index;
 		fb->frags.resize(total);
@@ -425,15 +385,14 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 		mFileHandler(fileName, filebuf);
 
 		mFileFragBuffers.remove(fb);
-		delete fb;
 	}
 }
 
 void Channel::addReliableMessage(BitBuffer& msg)
 {
-	auto bf = new BitBuffer();
+	auto bf = BitBuffer();
 
-	Common::BufferHelpers::WriteToBuffer(msg, *bf);
+	Common::BufferHelpers::WriteToBuffer(msg, bf);
 
 	mReliableMessages.push_back(bf);
 }

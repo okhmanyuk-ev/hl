@@ -19,10 +19,8 @@ namespace HL
 
 	public:
 		Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
-		~Channel();
 
 	public:
-		void clear();
 		void process(BitBuffer& msg);
 		void addReliableMessage(BitBuffer& msg);
 		void createNormalFragments(); // fragmentate a reliable buffer
@@ -50,9 +48,6 @@ namespace HL
 		Network::Address mAddress;
 		
 	public:
-		bool isActive() const { return mActive; }
-		void setActive(bool value) { mActive = value; }
-
 		auto getIncomingSequence() const { return mIncomingSequence; }
 		auto getIncomingAcknowledgement() const { return mIncomingAcknowledgement; }
 		auto getIncomingReliable() const { return mIncomingReliable; }
@@ -64,8 +59,6 @@ namespace HL
 		auto getLatency() const { return mLatency; }
 
 	private:
-		bool mActive = false;
-
 		uint32_t mIncomingSequence = 0;
 		uint32_t mIncomingAcknowledgement = 0;
 		bool mIncomingReliable = false;
@@ -86,7 +79,7 @@ namespace HL
 		Common::Timer mTimer;
 
 	private:
-		std::list<BitBuffer*> mReliableMessages;
+		std::list<BitBuffer> mReliableMessages;
 
 		struct Fragment
 		{
@@ -101,7 +94,7 @@ namespace HL
 			std::vector<Fragment> frags;
 		};
 
-		std::list<FragBuffer*> mNormalFragBuffers;
-		std::list<FragBuffer*> mFileFragBuffers;
+		std::list<std::shared_ptr<FragBuffer>> mNormalFragBuffers;
+		std::list<std::shared_ptr<FragBuffer>> mFileFragBuffers;
 	};
 }

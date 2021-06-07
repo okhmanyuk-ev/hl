@@ -25,6 +25,7 @@ namespace HL
 		};
 
 		using ThinkCallback = std::function<void(Protocol::UserCmd&)>;
+		using DisconnectCallback = std::function<void(const std::string& reason)>;
 		using ReadGameMessageCallback = std::function<void(const std::string& name, void* memory, size_t size)>;
 		using IsResourceRequiredCallback = std::function<bool(const Protocol::Resource& resource)>;
 
@@ -115,6 +116,7 @@ namespace HL
 	private:
 		void onConnect(CON_ARGS);
 		void onDisconnect(CON_ARGS);
+		void onRetry(CON_ARGS);
 		void onCmd(CON_ARGS);
 		void onFullServerInfo(CON_ARGS);
 
@@ -132,24 +134,24 @@ namespace HL
 		const auto& getClientData() const { return mClientData; }
 		const auto& getPlayerUserInfos() const { return mPlayerUserInfos; }
 
-		auto& getChannel() const { return mChannel; }
+		const auto& getChannel() const { return mChannel; }
 
 		const auto& getResources() const { return mResources; }
 
 		const auto& getProtInfo() const { return mProtInfo; }
-		void setProtInfo(const std::vector<std::pair<std::string, std::string>>& value) { mProtInfo = value; }
+		void setProtInfo(const std::map<std::string, std::string>& value) { mProtInfo = value; }
 
 		const auto& getCertificate() const { return mCertificate; }
 		void setCertificate(const std::vector<uint8_t>& value) { mCertificate = value; }
 
 	private:
-		Network::Address mServerAdr;
-		State mState;
-		std::vector<std::pair<std::string, std::string>> mProtInfo;
+		std::optional<Network::Address> mServerAdr; 
+		State mState = State::Disconnected;
+		std::map<std::string, std::string> mProtInfo;
 		//std::vector<std::pair<std::string, std::string>> mUserInfo; // setinfo
 		std::vector<uint8_t> mCertificate = { };
 
-		Channel mChannel;
+		std::optional<Channel> mChannel;
 
 
 		std::list<std::string> mDownloadQueue;
@@ -186,7 +188,7 @@ namespace HL
 
 		std::vector<Protocol::Resource> mResources;
 
-		std::map<int, Protocol::Entity*> mEntities;
+		std::map<int, Protocol::Entity*> mEntities; // TODO: shared ptr
 		std::map<int, Protocol::Entity> mDeltaEntities;
 		std::map<int, Protocol::Entity> mBaselines;
 		std::map<int, Protocol::Entity> mExtraBaselines;
@@ -198,10 +200,11 @@ namespace HL
 
 	public:
 		void setThinkCallback(ThinkCallback value) { mThinkCallback = value; }
+		void setDisconnectCallback(DisconnectCallback value) { mDisconnectCallback = value; }
 
 	private:
 		ThinkCallback mThinkCallback = nullptr;
-
+		DisconnectCallback mDisconnectCallback = nullptr;
 
 		uint8_t mSignonNum = 0;
 
@@ -217,12 +220,14 @@ namespace HL
 		virtual int getResourceHash(const Protocol::Resource& resource);
 
 	public:
-		void sendCommand(std::string_view command);
+		void sendCommand(const std::string& command);
+		void connect(const Network::Address& address);
+		void disconnect(const std::string& reason);
 	
 	public:
 		bool isPlayerIndex(int value) const;
 
-	private: // userinfos // TODO: make better
+	private: // userinfos
 		std::string mUserInfoDLMax = "512";
 		std::string mUserInfoLC = "1";
 		std::string mUserInfoLW = "1";
@@ -239,6 +244,6 @@ namespace HL
 			Console::CVar::Getter getter, Console::CVar::Setter setter);
 
 	private:
-		std::list<std::pair<std::string, Console::CVar::Getter>> mUserInfos;
+		std::map<std::string, Console::CVar::Getter> mUserInfos;
 	};
 }

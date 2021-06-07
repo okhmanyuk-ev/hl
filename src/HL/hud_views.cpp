@@ -27,9 +27,13 @@ namespace HL
 		{
 			ImGui::Begin("NetGraph", nullptr, ImGui::User::ImGuiWindowFlags_Overlay);
 			ImGui::SetWindowPos(ImGui::User::BottomRightCorner());
-			ImGui::Text("Seq: %d", mBaseClient.getChannel().getIncomingSequence());
-			ImGui::Text("Ack: %d", mBaseClient.getChannel().getOutgoingSequence());
-			ImGui::Text("Ping: %d", mBaseClient.getChannel().getLatency());
+			auto channel = mBaseClient.getChannel();
+			if (channel.has_value())
+			{
+				ImGui::Text("Seq: %d", channel->getIncomingSequence());
+				ImGui::Text("Ack: %d", channel->getOutgoingSequence());
+				ImGui::Text("Ping: %d", channel->getLatency());
+			}
 			ImGui::End();
 		}
 
