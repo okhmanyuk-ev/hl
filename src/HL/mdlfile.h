@@ -22,5 +22,5 @@ public:
 	auto getHeader() { return (studiohdr_t*)mBuffer.getMemory(); }
 	
 private:
-	Common::BitBuffer mBuffer;
+	BitBuffer mBuffer;
 };
