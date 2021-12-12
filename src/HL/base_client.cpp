@@ -864,7 +864,18 @@ void BaseClient::readRegularSignonNum(BitBuffer& msg)
 	mSignonNum = msg.read<uint8_t>();
 
 	if (mSignonNum == 1)
+	{
 		sendCommand("sendents");
+	}
+	else if (mSignonNum == 2)
+	{
+	/*	sendCommand("specmode 3");
+		sendCommand("specmode 3");
+		sendCommand("unpause \n");
+		sendCommand("unpause \n");
+		sendCommand("unpause \n");
+		sendCommand("unpause \n");*/
+	}
 }
 
 void BaseClient::readRegularStaticSound(BitBuffer& msg)
