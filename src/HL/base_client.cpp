@@ -448,6 +448,8 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	{
 		mReadGameMessageCallback(gmsg.name, buf.getMemory(), buf.getSize());
 	}
+
+	LOG(gmsg.name);
 }
 
 void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
@@ -1236,7 +1238,7 @@ void BaseClient::writeRegularMessages(BitBuffer& msg)
 		Encoder::Munge2(&crc, 4, (-1 - mSpawnCount) & 0xFF);
 		sendCommand("spawn " + std::to_string(mSpawnCount) + " " + std::to_string(crc));
 
-		mChannel->createNormalFragments(/*128 bytes per fragment, without compression*/);
+		mChannel->fragmentateReliableBuffer(128, false);
 	}
 
 	if (mSignonNum == 2)
@@ -1424,9 +1426,8 @@ void BaseClient::verifyResources()
 
 		mDownloadQueue.push_back(resource.name);
 		sendCommand("dlfile " + resource.name);
+		mChannel->fragmentateReliableBuffer();
 	}
-
-	mChannel->createNormalFragments();
 }
 
 bool BaseClient::isResourceRequired(const Protocol::Resource& resource)

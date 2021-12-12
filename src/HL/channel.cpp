@@ -22,20 +22,21 @@ void Channel::transmit()
 {
 	mOutgoingSequence++;
 		
-	bool hasFragments = false;
-	bool hasReliableMessages = false;
+	bool has_fragments = false;
+	bool has_reliable_messages = false;
 
 	if (mIncomingAcknowledgement >= mReliableSequence)
 	{
-		hasReliableMessages = mReliableMessages.size() > 0;
+		has_fragments = !mOutgoingFragBuffers.empty();
+		has_reliable_messages = !mReliableMessages.empty();
 	}
 
-	bool rel = hasFragments || hasReliableMessages;
+	bool rel = has_fragments || has_reliable_messages;
 
 	if (rel)
 		mReliableSequence = mOutgoingSequence;
 
-	int seq = (int)mOutgoingSequence | (rel << 31);
+	int seq = (int)mOutgoingSequence | (has_fragments << 30) | (rel << 31);
 	int ack = (int)mIncomingSequence | (mOutgoingReliable << 31);
 
 	BitBuffer msg;
@@ -43,9 +44,11 @@ void Channel::transmit()
 	msg.write(seq);
 	msg.write(ack);
 
-	// write fragments here
-
-	if (hasReliableMessages)
+	if (has_fragments)
+	{
+		writeFragments(msg);
+	}
+	else if (has_reliable_messages)
 	{
 		writeReliableMessages(msg);
 	}
@@ -64,6 +67,32 @@ void Channel::transmit()
 	Common::BufferHelpers::WriteToBuffer(msg, pack.buf);
 
 	mSocket->sendPacket(pack);
+}
+
+void Channel::writeFragments(BitBuffer& msg)
+{
+	msg.write<uint8_t>(!mOutgoingFragBuffers.empty());
+
+	uint16_t total = mOutgoingFragBuffers.begin()->buffers.size();
+	uint16_t cur = 1;
+	uint16_t offset = 0; // will be non zero in filefrag
+	uint16_t size = mOutgoingFragBuffers.begin()->buffers.begin()->getSize();
+
+	msg.write<uint16_t>(total);
+	msg.write<uint16_t>(cur);
+	msg.write<uint16_t>(offset);
+	msg.write<uint16_t>(size);
+
+	msg.write<uint8_t>(0); // no file fragments
+
+	// file frag headers here
+
+	const auto& buf = *mOutgoingFragBuffers.begin()->buffers.begin();
+
+	msg.write(buf.getMemory(), buf.getSize());
+	// write file frag buf here
+
+	mOutgoingFragBuffers.pop_front();
 }
 
 void Channel::writeReliableMessages(BitBuffer& msg)
@@ -183,13 +212,9 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		
 	// search frag buffer
 
-	for (auto& fragBuf : mNormalFragBuffers)
+	if (mNormalFragBuffers.contains(index))
 	{
-		if (fragBuf->index != index)
-			continue;
-
-		fb = fragBuf;
-		break;
+		fb = mNormalFragBuffers.at(index);
 	}
 
 	// allocate new buffer if we cannot found one
@@ -197,11 +222,8 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	if (fb == nullptr)
 	{
 		fb = std::make_shared<FragBuffer>();
-
-		fb->index = index;
 		fb->frags.resize(total);
-
-		mNormalFragBuffers.push_back(fb);
+		mNormalFragBuffers.insert({ index, fb });
 	}
 
 	fb->time = Clock::Now();
@@ -209,8 +231,6 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	auto& frag = fb->frags[count - 1];
 
 	// write fragment data to buffer
-
-	//size_t skip = (msg.read<uint8_t>() ? 8 : 0); // skip filefrag header
 
 	size_t skip;
 
@@ -281,7 +301,7 @@ void Channel::readNormalFragments(BitBuffer& msg)
 			
 		// remove completed fragbuf
 
-		mNormalFragBuffers.remove(fb);
+		mNormalFragBuffers.erase(index);
 	}
 }
 
@@ -299,13 +319,9 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 	std::shared_ptr<FragBuffer> fb = nullptr;
 
-	for (auto& fragBuf : mFileFragBuffers)
+	if (mFileFragBuffers.contains(index))
 	{
-		if (fragBuf->index != index)
-			continue;
-
-		fb = fragBuf;
-		break;
+		fb = mFileFragBuffers.at(index);
 	}
 
 	// allocate new buffer if we cannot found one
@@ -313,11 +329,8 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 	if (fb == nullptr)
 	{
 		fb = std::make_shared<FragBuffer>();
-
-		fb->index = index;
 		fb->frags.resize(total);
-
-		mFileFragBuffers.push_back(fb);
+		mFileFragBuffers.insert({ index, fb });
 	}
 
 	fb->time = Clock::Now();
@@ -387,7 +400,7 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 		mFileHandler(fileName, filebuf);
 
-		mFileFragBuffers.remove(fb);
+		mFileFragBuffers.erase(index);
 	}
 }
 
@@ -400,7 +413,13 @@ void Channel::addReliableMessage(BitBuffer& msg)
 	mReliableMessages.push_back(bf);
 }
 
-void Channel::createNormalFragments()
+void Channel::fragmentateReliableBuffer(int fragment_size, bool compression)
 {
-	//
+	assert(!mReliableMessages.empty());
+
+	OutgoingFragBuffer frag_buf;
+	frag_buf.buffers.push_back(*mReliableMessages.begin());
+	mOutgoingFragBuffers.push_back(frag_buf);
+
+	mReliableMessages.pop_front();
 }

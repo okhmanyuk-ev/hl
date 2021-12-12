@@ -8,6 +8,7 @@
 #include <network/system.h>
 #include <console/device.h>
 #include <vector>
+#include <map>
 
 namespace HL
 {
@@ -23,10 +24,11 @@ namespace HL
 	public:
 		void process(BitBuffer& msg);
 		void addReliableMessage(BitBuffer& msg);
-		void createNormalFragments(); // fragmentate a reliable buffer
+		void fragmentateReliableBuffer(int fragment_size = 512, bool compression = true);
 
 	private:
 		void transmit();
+		void writeFragments(BitBuffer& msg);
 		void writeReliableMessages(BitBuffer& msg);
 		void readFragments(BitBuffer& msg);
 		void readNormalFragments(BitBuffer& msg);
@@ -90,11 +92,17 @@ namespace HL
 		struct FragBuffer
 		{
 			Clock::TimePoint time;
-			int32_t index;
 			std::vector<Fragment> frags;
 		};
 
-		std::list<std::shared_ptr<FragBuffer>> mNormalFragBuffers;
-		std::list<std::shared_ptr<FragBuffer>> mFileFragBuffers;
+		std::map</*index*/int32_t, std::shared_ptr<FragBuffer>> mNormalFragBuffers;
+		std::map</*index*/int32_t, std::shared_ptr<FragBuffer>> mFileFragBuffers;
+
+		struct OutgoingFragBuffer
+		{
+			std::vector<BitBuffer> buffers;
+		};
+		
+		std::list<OutgoingFragBuffer> mOutgoingFragBuffers;
 	};
 }
