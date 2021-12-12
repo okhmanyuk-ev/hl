@@ -24,7 +24,7 @@ namespace HL
 	public:
 		void process(BitBuffer& msg);
 		void addReliableMessage(BitBuffer& msg);
-		void fragmentateReliableBuffer(int fragment_size = 512, bool compression = true);
+		void fragmentateReliableBuffer(int fragment_size = 512, bool compress = true);
 
 	private:
 		void transmit();
@@ -100,7 +100,8 @@ namespace HL
 
 		struct OutgoingFragBuffer
 		{
-			std::vector<BitBuffer> buffers;
+			std::list<BitBuffer> buffers;
+			int total = 0;
 		};
 		
 		std::list<OutgoingFragBuffer> mOutgoingFragBuffers;

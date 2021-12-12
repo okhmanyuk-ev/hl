@@ -45,14 +45,11 @@ void Channel::transmit()
 	msg.write(ack);
 
 	if (has_fragments)
-	{
 		writeFragments(msg);
-	}
-	else if (has_reliable_messages)
-	{
+	
+	if (has_reliable_messages)
 		writeReliableMessages(msg);
-	}
-
+	
 	mWriteHandler(msg);
 
 	while (msg.getSize() < 16)
@@ -61,38 +58,45 @@ void Channel::transmit()
 	Encoder::Munge2((void*)((size_t)msg.getMemory() + 8), msg.getSize() - 8, seq & 0xFF);
 		
 	Network::Packet pack;
-		
 	pack.adr = mAddress;
-		
 	Common::BufferHelpers::WriteToBuffer(msg, pack.buf);
-
 	mSocket->sendPacket(pack);
 }
 
 void Channel::writeFragments(BitBuffer& msg)
 {
-	msg.write<uint8_t>(!mOutgoingFragBuffers.empty());
+	auto has_frag_buf = !mOutgoingFragBuffers.empty();
 
-	uint16_t total = mOutgoingFragBuffers.begin()->buffers.size();
-	uint16_t cur = 1;
-	uint16_t offset = 0; // will be non zero in filefrag
-	uint16_t size = mOutgoingFragBuffers.begin()->buffers.begin()->getSize();
+	msg.write<uint8_t>(has_frag_buf ? 1 : 0);
 
-	msg.write<uint16_t>(total);
-	msg.write<uint16_t>(cur);
-	msg.write<uint16_t>(offset);
-	msg.write<uint16_t>(size);
+	if (has_frag_buf)
+	{
+		const auto& frag_buf = *mOutgoingFragBuffers.begin();
 
-	msg.write<uint8_t>(0); // no file fragments
+		uint16_t total = frag_buf.total;
+		uint16_t cur = total - frag_buf.buffers.size() + 1;
+		uint16_t offset = 0; // will be non zero in filefrag
+		uint16_t size = frag_buf.buffers.begin()->getSize();
 
-	// file frag headers here
+		msg.write<uint16_t>(total);
+		msg.write<uint16_t>(cur);
+		msg.write<uint16_t>(offset);
+		msg.write<uint16_t>(size);
+	}
+
+	auto has_file_frag_buf = false;
+
+	msg.write<uint8_t>(has_file_frag_buf ? 1 : 0); // no file fragments
+
+	if (has_file_frag_buf)
+	{
+		// file frag headers here
+	}
 
 	const auto& buf = *mOutgoingFragBuffers.begin()->buffers.begin();
 
 	msg.write(buf.getMemory(), buf.getSize());
 	// write file frag buf here
-
-	mOutgoingFragBuffers.pop_front();
 }
 
 void Channel::writeReliableMessages(BitBuffer& msg)
@@ -157,15 +161,19 @@ void Channel::process(BitBuffer& msg)
 		{
 			mIncomingReliable = relAck;
 
-			//if OutgoingFragments.Count > 0 then
-			//{
-			//	Inc(OutgoingFragments.List[0].Count);// := OutgoingFragments.First.Count + 1;
+			if (!mOutgoingFragBuffers.empty())
+			{
+				if (!mOutgoingFragBuffers.begin()->buffers.empty()) 
+				{
+					mOutgoingFragBuffers.begin()->buffers.pop_front();
+				}
+				if (mOutgoingFragBuffers.begin()->buffers.empty())
+				{
+					mOutgoingFragBuffers.pop_front();
+				}
+			}
 
-			//if OutgoingFragments.First.Count > High(OutgoingFragments.First.Data) then
-			//	OutgoingFragments.Delete(0);
-			//}
-
-				// filefrag
+			// filefrag
 
 			while (mReliableSent > 0)
 			{
@@ -281,15 +289,15 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		if (Common::BufferHelpers::ReadString(buf) == "BZ2")
 		{
 			uint32_t uncompressedSize = 65536;
-
 			BitBuffer uncompressed;
-
 			uncompressed.setSize(uncompressedSize);
-				
-			BZ2_bzBuffToBuffDecompress((char*)uncompressed.getMemory(), &uncompressedSize, 
-				(char*)((size_t)buf.getMemory() + buf.getPosition()), 
-				(unsigned int)(buf.getSize() - buf.getPosition()), 1, 0);
+			
+			auto dst = (char*)uncompressed.getMemory();
+			auto src = (char*)((size_t)buf.getMemory() + buf.getPosition());
+			auto src_len = (unsigned int)(buf.getSize() - buf.getPosition());
 
+			BZ2_bzBuffToBuffDecompress(dst, &uncompressedSize, src, src_len, 1, 0);
+			
 			buf.clear();
 			buf.write(uncompressed.getMemory(), uncompressedSize);
 		}
@@ -388,9 +396,11 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 		if (compressed)
 		{
-			BZ2_bzBuffToBuffDecompress((char*)filebuf.getMemory(), &size,
-				(char*)((size_t)buf.getMemory() + buf.getPosition()), 
-				(unsigned int)(buf.getSize() - buf.getPosition()), 1, 0);
+			auto dst = (char*)filebuf.getMemory();
+			auto src = (char*)((size_t)buf.getMemory() + buf.getPosition());
+			auto src_len = (unsigned int)(buf.getSize() - buf.getPosition());
+
+			BZ2_bzBuffToBuffDecompress(dst, &size, src, src_len, 1, 0);
 		}
 		else
 		{
@@ -413,13 +423,55 @@ void Channel::addReliableMessage(BitBuffer& msg)
 	mReliableMessages.push_back(bf);
 }
 
-void Channel::fragmentateReliableBuffer(int fragment_size, bool compression)
+void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 {
 	assert(!mReliableMessages.empty());
 
-	OutgoingFragBuffer frag_buf;
-	frag_buf.buffers.push_back(*mReliableMessages.begin());
-	mOutgoingFragBuffers.push_back(frag_buf);
+	BitBuffer msg;
 
-	mReliableMessages.pop_front();
+	for (const auto& reliable : mReliableMessages)
+	{
+		msg.write(reliable.getMemory(), reliable.getSize());
+	}
+
+	if (compress)
+	{
+		unsigned int dst_len = 65535;
+
+		BitBuffer temp_buf;
+		temp_buf.setSize(dst_len);
+
+		auto dst = (char*)temp_buf.getMemory();
+		auto src = (char*)msg.getMemory();
+		auto src_len = msg.getSize();
+		auto res = BZ2_bzBuffToBuffCompress(dst, &dst_len, src, src_len, 9, 0, 30); // TODO: wtf is last three arguments?
+
+		msg.clear();
+		Common::BufferHelpers::WriteString(msg, "BZ2");
+		msg.write(temp_buf.getMemory(), dst_len);
+	}
+
+	mReliableMessages.clear();
+
+	OutgoingFragBuffer frag_buf;
+
+	msg.toStart();
+
+	while (msg.hasRemaining())
+	{
+		BitBuffer temp_buf;
+
+		for (int i = 0; i < fragment_size; i++)
+		{
+			if (!msg.hasRemaining())
+				break;
+
+			temp_buf.write<uint8_t>(msg.read<uint8_t>());
+		}
+
+		frag_buf.buffers.push_back(temp_buf);
+	}
+
+	frag_buf.total = frag_buf.buffers.size();
+	mOutgoingFragBuffers.push_back(frag_buf);
 }
