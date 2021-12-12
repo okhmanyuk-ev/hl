@@ -113,6 +113,9 @@ void Channel::process(BitBuffer& msg)
 	if (seq == mIncomingSequence)
 		return; // duplicate packet
 
+	if (seq > mIncomingSequence + 1)
+		LOGCF("channel: dropped {} packet(s)", Console::Color::Red, seq - mIncomingSequence);
+
 	mIncomingSequence = seq;
 	mIncomingAcknowledgement = ack;
 
