@@ -210,7 +210,7 @@ namespace HL
 
 
 
-		uint8_t m_DeltaSequence;
+		uint8_t mDeltaSequence;
 
 
 
@@ -218,6 +218,8 @@ namespace HL
 
 		virtual bool isResourceRequired(const Protocol::Resource& resource);
 		virtual int getResourceHash(const Protocol::Resource& resource);
+
+		void signon(uint8_t num);
 
 	public:
 		void sendCommand(const std::string& command);

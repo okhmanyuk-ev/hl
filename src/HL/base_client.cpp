@@ -863,21 +863,8 @@ void BaseClient::readRegularSignonNum(BitBuffer& msg)
 {
 	// if peek uint8 < current signon then disconnect
 
-	mSignonNum = msg.read<uint8_t>();
-
-	if (mSignonNum == 1)
-	{
-		sendCommand("sendents");
-	}
-	else if (mSignonNum == 2)
-	{
-	/*	sendCommand("specmode 3");
-		sendCommand("specmode 3");
-		sendCommand("unpause \n");
-		sendCommand("unpause \n");
-		sendCommand("unpause \n");
-		sendCommand("unpause \n");*/
-	}
+	auto num = msg.read<uint8_t>();
+	signon(num);
 }
 
 void BaseClient::readRegularStaticSound(BitBuffer& msg)
@@ -941,12 +928,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 {
 	if (mSignonNum == 1)
 	{
-		mSignonNum = 2;
-
-		if (mHLTV)
-		{
-			sendCommand("spectate");
-		}
+		signon(2);
 	}
 
 	auto readDeltaEntity = [this, &msg](int index, Protocol::Entity& entity, bool custom) {
@@ -973,7 +955,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 	{
 		auto mask = msg.read<uint8_t>();
 
-		m_DeltaSequence = mChannel->getIncomingSequence() & 0xFF; // TODO: only in delta ?
+		mDeltaSequence = mChannel->getIncomingSequence() & 0xFF; // TODO: only in delta ?
 
 		while (msg.read<uint16_t>() != 0)
 		{
@@ -1287,7 +1269,7 @@ void BaseClient::writeRegularMove(BitBuffer& msg)
 void BaseClient::writeRegularDelta(BitBuffer& msg)
 {
 	msg.write<uint8_t>((uint8_t)Protocol::Client::Message::Delta);
-	msg.write<uint8_t>(m_DeltaSequence);
+	msg.write<uint8_t>(mDeltaSequence);
 }
 
 void BaseClient::writeRegularFileConsistency(BitBuffer& msg)
@@ -1466,6 +1448,28 @@ int BaseClient::getResourceHash(const Protocol::Resource& resource)
 	return *(int*)md5.getdigest();
 }
 
+void BaseClient::signon(uint8_t num)
+{
+	mSignonNum = num;
+	if (mSignonNum == 1)
+	{
+		sendCommand("sendents");
+		if (mHLTV)
+		{
+			sendCommand("spectate");
+		}
+	}
+	else if (mSignonNum == 2)
+	{
+		/*	sendCommand("specmode 3");
+			sendCommand("specmode 3");
+			sendCommand("unpause \n");
+			sendCommand("unpause \n");
+			sendCommand("unpause \n");
+			sendCommand("unpause \n");*/
+	}
+}
+
 void BaseClient::sendCommand(const std::string& command)
 {
 	if (mState < State::Connected)
@@ -1526,7 +1530,7 @@ void BaseClient::disconnect(const std::string& reason)
 	mBaselines.clear();
 	mExtraBaselines.clear();
 	mSignonNum = 0;
-	m_DeltaSequence = 0;
+	mDeltaSequence = 0;
 
 	LOG("disconnected, reason: \"" + reason + "\"");
 
