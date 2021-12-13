@@ -448,8 +448,6 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	{
 		mReadGameMessageCallback(gmsg.name, buf.getMemory(), buf.getSize());
 	}
-
-	LOG(gmsg.name);
 }
 
 void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
