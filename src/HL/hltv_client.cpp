@@ -37,6 +37,8 @@ namespace HL
 			{ "unique", "-1" }, 
 			{ "raw", "861078331b85a424935805ca54f82891" } 
 		});
+
+		CONSOLE->execute("name 'HLTV Proxy'");
 	}
 
 	HLTVClient::~HLTVClient()
