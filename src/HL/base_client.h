@@ -77,6 +77,7 @@ namespace HL
 		void readRegularResourceList(BitBuffer& msg);
 		void readRegularMoveVars(BitBuffer& msg);
 		void readRegularResourceRequest(BitBuffer& msg);
+		void readRegularCustomization(BitBuffer& msg);
 		void readFileTxferFailed(BitBuffer& msg);
 		void readRegularHLTV(BitBuffer& msg);
 		void readRegularDirector(BitBuffer& msg);
@@ -155,9 +156,9 @@ namespace HL
 
 
 		std::list<std::string> mDownloadQueue;
-		bool m_ResourcesVerifying = false;
-		bool m_ResourcesVerified = false;
-		bool m_ConfirmationRequired = false;
+		bool mResourcesVerifying = false;
+		bool mResourcesVerified = false;
+		bool mConfirmationRequired = false;
 
 
 

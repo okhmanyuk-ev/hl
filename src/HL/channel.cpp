@@ -1,9 +1,8 @@
 #include "channel.h"
 #include "encoder.h"
 #include "protocol.h"
-
+#include "utils.h"
 #include <bzlib.h>
-
 #include <Common/buffer_helpers.h>
 
 using namespace HL;
@@ -82,6 +81,8 @@ void Channel::writeFragments(BitBuffer& msg)
 		msg.write<uint16_t>(cur);
 		msg.write<uint16_t>(offset);
 		msg.write<uint16_t>(size);
+
+		Utils::dlog("{}/{}, size: {}", cur, total, size);
 	}
 
 	auto has_file_frag_buf = false;
@@ -213,8 +214,8 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	int index = sequence << 16;
 	int count = sequence >> 16;
 	int total = sequence & 0xFFFF;
-
-	// mConsole->writeLine("normal fragment " + std::to_string(index) + " (" + std::to_string(count) + "/" + std::to_string(total) + ")");
+	
+	Utils::dlog("index: {} ({}/{}), offset: {}, size: {}", index, count, total, offset, size);
 
 	std::shared_ptr<FragBuffer> fb = nullptr;
 		
@@ -285,28 +286,32 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		}
 
 		buf.toStart();
+
+		Utils::dlog("fragments completed (size: {})", buf.getSize());
 			
 		if (Common::BufferHelpers::ReadString(buf) == "BZ2")
 		{
-			uint32_t uncompressedSize = 65536;
-			BitBuffer uncompressed;
-			uncompressed.setSize(uncompressedSize);
+			uint32_t dst_len = 65536;
+			BitBuffer dst_buf;
+			dst_buf.setSize(dst_len);
 			
-			auto dst = (char*)uncompressed.getMemory();
+			auto dst = (char*)dst_buf.getMemory();
 			auto src = (char*)((size_t)buf.getMemory() + buf.getPosition());
 			auto src_len = (unsigned int)(buf.getSize() - buf.getPosition());
 
-			BZ2_bzBuffToBuffDecompress(dst, &uncompressedSize, src, src_len, 1, 0);
+			BZ2_bzBuffToBuffDecompress(dst, &dst_len, src, src_len, 1, 0);
 			
 			buf.clear();
-			buf.write(uncompressed.getMemory(), uncompressedSize);
+			buf.write(dst_buf.getMemory(), dst_len);
+
+			Utils::dlog("decompress {} -> {}", src_len, dst_len);
 		}
 
 		// read just completed fragbuf as normal messages
 		
 		buf.toStart();
 		mReadHandler(buf);
-			
+
 		// remove completed fragbuf
 
 		mNormalFragBuffers.erase(index);
@@ -449,6 +454,8 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 		msg.clear();
 		Common::BufferHelpers::WriteString(msg, "BZ2");
 		msg.write(temp_buf.getMemory(), dst_len);
+
+		Utils::dlog("compress {} -> {}", src_len, dst_len);
 	}
 
 	mReliableMessages.clear();
@@ -474,4 +481,6 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 
 	frag_buf.total = frag_buf.buffers.size();
 	mOutgoingFragBuffers.push_back(frag_buf);
+
+	Utils::dlog("{} fragments created", frag_buf.total);
 }

@@ -16,6 +16,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include "utils.h"
 
 using namespace HL;
 
@@ -86,6 +87,8 @@ BaseClient::~BaseClient()
 #pragma region read
 void BaseClient::readConnectionlessPacket(Network::Packet& packet)
 {
+	Utils::dlog(Common::Helpers::BytesArrayToNiceString(packet.buf.getPositionMemory(), packet.buf.getRemaining()));
+
 	switch (static_cast<Protocol::Server::ConnectionlessPacket>(packet.buf.read<uint8_t>()))
 	{
 	case Protocol::Server::ConnectionlessPacket::Print:
@@ -376,8 +379,11 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 		case Protocol::Server::Message::ResourceRequest:
 			readRegularResourceRequest(msg);
 			break;
-		/*
+		
 		case Protocol::Server::Message::Customization:
+			readRegularCustomization(msg);
+			break;
+			/*
 		case Protocol::Server::Message::CrosshairAngle:
 		case Protocol::Server::Message::SoundFade:		*/
 
@@ -421,7 +427,7 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 			break;
 
 		default:
-			LOG("unknown svc: " + std::to_string(index)); // TODO: should disconnect 
+			LOGCF("unknown svc: {}", Console::Color::Red, index); // TODO: should disconnect 
 			return;
 		}
 	}
@@ -447,6 +453,10 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	if (mReadGameMessageCallback)
 	{
 		mReadGameMessageCallback(gmsg.name, buf.getMemory(), buf.getSize());
+	}
+	else
+	{
+		Utils::dlog(gmsg.name);
 	}
 }
 
@@ -641,12 +651,14 @@ void BaseClient::readRegularLightStyle(BitBuffer& msg)
 void BaseClient::readRegularUserInfo(BitBuffer& msg)
 {
 	auto index = msg.read<uint8_t>();
-	auto userId = msg.read<int32_t>();
+	auto userid = msg.read<int32_t>();
 	auto info = Common::BufferHelpers::ReadString(msg);
 	uint8_t hash[16];
 	msg.read(&hash, 16);
 
 	mPlayerUserInfos[index] = info;
+
+	Utils::dlog("index: {}, userid: {}, info: \"{}\"", index, userid, info);
 }
 
 void BaseClient::readRegularDeltaDescription(BitBuffer& msg)
@@ -726,11 +738,6 @@ void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)
 		else
 			mDelta.readEntityNormal(msg, entity);
 	}
-
-	//mExtraBaselines.resize(msg.readBits(6));
-
-	//for (auto& extra : mExtraBaselines)
-	//	mDelta.readEntityNormal(msg, extra);
 
 	for (uint32_t i = 0; i < msg.readBits(6); i++)
 		mDelta.readEntityNormal(msg, mExtraBaselines[i]);
@@ -1055,9 +1062,9 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 		}
 	}
 
-	m_ConfirmationRequired = msg.readBit();
+	mConfirmationRequired = msg.readBit();
 
-	if (m_ConfirmationRequired)
+	if (mConfirmationRequired)
 	{
 		uint32_t index = 0;
 
@@ -1086,8 +1093,8 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 		resource.name = "sound/" + resource.name;
 	}
 
-	m_ResourcesVerifying = true;
-	m_ResourcesVerified = false;
+	mResourcesVerifying = true;
+	mResourcesVerified = false;
 
 	verifyResources();
 }
@@ -1124,29 +1131,59 @@ void BaseClient::readRegularMoveVars(BitBuffer& msg)
 
 void BaseClient::readRegularResourceRequest(BitBuffer& msg)
 {
-	int spawncount = msg.read<int32_t>();
-	msg.read<int32_t>(); // rehlds says that it will always 0
+	auto spawncount = msg.read<int32_t>();
+	auto range = msg.read<int32_t>(); // rehlds says that it will always 0 (wtf is it?)
 
-	// send clc_resourcelist here
+	auto count = 0;
 
-	/*ServerNum: = MSG.Read<Int32>;
+	BitBuffer bf;
+	bf.write<uint8_t>((uint8_t)Protocol::Client::Message::ResourceList);
+	bf.write<int16_t>(count);
 
-	if ServerNum = ServerInfo.SpawnCount then
-	begin
-		Range : = MSG.Read<Int32>;
+	LOGF("{} resources sent", count);
 
-		if Range = 0 then
+	mChannel->addReliableMessage(bf);
+	mChannel->fragmentateReliableBuffer(512, false);
+
+	/*
+	BF.WriteUInt8(CLC_RESOURCELIST);
+	BF.WriteInt16(Length(MyResources));
+
+	for I := 0 to Length(MyResources) - 1 do
+		with MyResources[I] do
 		begin
-			WriteRegularResourceList;
-		Channel.CreateFragments(BF.ToArray, DEFAULT_FRAGMENT_SIZE, False);
-	BF.Clear;
-	end
-	else
-		raise Exception.Create('custom resource list request out of range (' + Range.ToString + ')');
-	end
-	else
-		raise Exception.Create('Index (' + ServerNum.ToString + ') <> SpawnCount (' + ServerInfo.SpawnCount.ToString + ')');
-		*/
+			BF.WriteLStr(Name);
+			BF.WriteUInt8(RType);
+			BF.WriteInt16(I);
+			BF.WriteInt32(Size);
+			BF.WriteUInt8(Flags);
+
+			if Flags and RES_CUSTOM > 0 then
+				BF.Write(MD5, SizeOf(MD5));
+
+			Debug(T, [ToString], RESOURCELIST_LOG_LEVEL);
+		end;
+	*/
+}
+
+void BaseClient::readRegularCustomization(BitBuffer& msg) 
+{
+	auto index = msg.read<uint8_t>();
+
+	auto resource = Protocol::Resource();
+	auto type = msg.read<uint8_t>(); // resource.type enum
+	resource.name = Common::BufferHelpers::ReadString(msg);
+	resource.index = msg.read<int16_t>();
+	resource.size = msg.read<int32_t>();
+	resource.flags = msg.read<uint8_t>();
+	
+	if (resource.flags & Protocol::RES_CUSTOM)
+	{
+		msg.seek(16);
+	}
+
+	Utils::dlog("index: {}, type: {}, name: \"{}\", size: {}, flags: {}", index, 
+		type, resource.name, resource.size, resource.flags);
 }
 
 void BaseClient::readFileTxferFailed(BitBuffer& msg)
@@ -1172,7 +1209,7 @@ void BaseClient::readRegularVoiceInit(BitBuffer& msg)
 	auto codec = Common::BufferHelpers::ReadString(msg);
 	auto quality = msg.read<uint8_t>(); // if protocol > 46
 
-	LOGC("voice codec: " + codec, Console::Color::Red);
+	Utils::dlog("codec: \"{}\", quality: {}", codec, quality);
 }
 
 void BaseClient::readRegularSendExtraInfo(BitBuffer& msg)
@@ -1204,29 +1241,30 @@ void BaseClient::readRegularCVarValue2(BitBuffer& msg)
 #pragma region write
 void BaseClient::writeRegularMessages(BitBuffer& msg)
 {
-	if (m_ResourcesVerifying && mDownloadQueue.size() == 0)
+	if (mResourcesVerifying && mDownloadQueue.size() == 0)
 	{
-		m_ResourcesVerified = true;
-		m_ResourcesVerifying = false;
+		mResourcesVerified = true;
+		mResourcesVerifying = false;
 
-		if (m_ConfirmationRequired)
+		if (mConfirmationRequired)
 			writeRegularFileConsistency(msg);
 		else
 			LOG("confirmation of resources isn't required");
 
 		int crc = mMapCrc;
 		Encoder::Munge2(&crc, 4, (-1 - mSpawnCount) & 0xFF);
-		sendCommand("spawn " + std::to_string(mSpawnCount) + " " + std::to_string(crc));
+		sendCommand(fmt::format("spawn {} {}", mSpawnCount, crc));
 
 		mChannel->fragmentateReliableBuffer(128, false);
 	}
 
+	if ((mResourcesVerified || mResourcesVerifying) && !mHLTV)
+	{
+		writeRegularMove(msg);
+	}
+
 	if (mSignonNum == 2)
 	{
-		if (!mHLTV)
-		{
-			writeRegularMove(msg);
-		}
 		writeRegularDelta(msg);
 	}
 }
@@ -1248,7 +1286,7 @@ void BaseClient::writeRegularMove(BitBuffer& msg)
 	HL::Protocol::UserCmd userCmd;
 	memset(&userCmd, 0, sizeof(userCmd));
 	
-	if (mThinkCallback)
+	if (mThinkCallback && mSignonNum == 2)
 		mThinkCallback(userCmd);
 	
 	mDelta.writeUserCmd(msg, userCmd, old);
@@ -1448,17 +1486,18 @@ int BaseClient::getResourceHash(const Protocol::Resource& resource)
 
 void BaseClient::signon(uint8_t num)
 {
+	Utils::dlog("{}", num);
 	mSignonNum = num;
 	if (mSignonNum == 1)
 	{
 		sendCommand("sendents");
+	}
+	else if (mSignonNum == 2)
+	{
 		if (mHLTV)
 		{
 			sendCommand("spectate");
 		}
-	}
-	else if (mSignonNum == 2)
-	{
 		/*	sendCommand("specmode 3");
 			sendCommand("specmode 3");
 			sendCommand("unpause \n");
@@ -1513,9 +1552,9 @@ void BaseClient::disconnect(const std::string& reason)
 	mState = State::Disconnected;
 	mChannel.reset();
 
-	m_ResourcesVerifying = false;
-	m_ResourcesVerified = false;
-	m_ConfirmationRequired = false;
+	mResourcesVerifying = false;
+	mResourcesVerified = false;
+	mConfirmationRequired = false;
 	mDownloadQueue.clear();
 	mDelta.clear();
 	mGameMessages.clear();

@@ -1,132 +1,135 @@
 #include "networking.h"
 #include <Common/buffer_helpers.h>
+#include "utils.h"
+#include <common/helpers.h>
 
-namespace HL
+using namespace HL;
+
+Networking::Networking(uint16_t port)
 {
-	Networking::Networking(uint16_t port)
-	{
-		mSocket = std::make_shared<Network::UdpSocket>(port);
-		mSocket->setReadCallback([this](Network::Packet& packet) { 
-			readPacket(packet); 
-		});
-	}
+	mSocket = std::make_shared<Network::UdpSocket>(port);
+	mSocket->setReadCallback([this](Network::Packet& packet) { 
+		readPacket(packet); 
+	});
+}
 
-	void Networking::readPacket(Network::Packet& packet)
+void Networking::readPacket(Network::Packet& packet)
+{
+	packet.buf.toStart();
+
+	if (packet.buf.getSize() <= 4)
+		return;
+
+	switch (packet.buf.read<int32_t>()) 
 	{
+	case -1:
+		readConnectionlessPacket(packet);
+		break;
+
+	case -2:
+		readSplitPacket(packet);
+		break;
+
+	default:
 		packet.buf.toStart();
+		readRegularPacket(packet);
+		break;
+	}
+}
 
-		if (packet.buf.getSize() <= 4)
-			return;
+void Networking::readSplitPacket(Network::Packet& packet)
+{
+	// https://developer.valvesoftware.com/wiki/Server_queries
 
-		switch (packet.buf.read<int32_t>()) 
-		{
-		case -1:
-			readConnectionlessPacket(packet);
-			break;
+	auto index = packet.buf.read<int32_t>();
 
-		case -2:
-			readSplitPacket(packet);
-			break;
+	auto total = packet.buf.readBits(4);
+	auto count = packet.buf.readBits(4);
 
-		default:
-			packet.buf.toStart();
-			readRegularPacket(packet);
-			break;
-		}
+	std::shared_ptr<SplitBuffer> sb = nullptr;
+
+	// search split buffer
+
+	for (auto& splitBuf : mSplitBuffers)
+	{
+		if (splitBuf->index != index)
+			continue;
+
+		sb = splitBuf;
+		break;
 	}
 
-	void Networking::readSplitPacket(Network::Packet& packet)
+	// allocate new buffer if we cannot found one
+
+	if (sb == nullptr)
 	{
-		// https://developer.valvesoftware.com/wiki/Server_queries
+		sb = std::make_shared<SplitBuffer>();
 
-		auto index = packet.buf.read<int32_t>();
+		sb->index = index;
+		sb->frags.resize(total);
 
-		auto total = packet.buf.readBits(4);
-		auto count = packet.buf.readBits(4);
+		mSplitBuffers.push_back(sb);
+	}
 
-		std::shared_ptr<SplitBuffer> sb = nullptr;
+	sb->time = Clock::Now();
 
-		// search split buffer
+	auto& frag = sb->frags[count];
 
-		for (auto& splitBuf : mSplitBuffers)
-		{
-			if (splitBuf->index != index)
-				continue;
+	// write fragment data to buffer
 
-			sb = splitBuf;
-			break;
-		}
+	frag.buffer.write(packet.buf.getMemory(), packet.buf.getRemaining());
 
-		// allocate new buffer if we cannot found one
+	// check for completion
 
-		if (sb == nullptr)
-		{
-			sb = std::make_shared<SplitBuffer>();
+	bool completed = true;
 
-			sb->index = index;
-			sb->frags.resize(total);
+	for (auto& f : sb->frags)
+	{
+		if (f.completed)
+			continue;
 
-			mSplitBuffers.push_back(sb);
-		}
+		completed = false;
+		break;
+	}
 
-		sb->time = Clock::Now();
+	if (completed)
+	{
+		// create new packet and push to readPacket function
 
-		auto& frag = sb->frags[count];
+		Network::Packet pack;
 
-		// write fragment data to buffer
-
-		frag.buffer.write(packet.buf.getMemory(), packet.buf.getRemaining());
-
-		// check for completion
-
-		bool completed = true;
+		pack.adr = packet.adr;
 
 		for (auto& f : sb->frags)
 		{
-			if (f.completed)
-				continue;
-
-			completed = false;
-			break;
+			Common::BufferHelpers::WriteToBuffer(f.buffer, pack.buf);
 		}
 
-		if (completed)
-		{
-			// create new packet and push to readPacket function
+		pack.buf.toStart();
 
-			Network::Packet pack;
+		readPacket(pack);
 
-			pack.adr = packet.adr;
+		// remove completed split buf
 
-			for (auto& f : sb->frags)
-			{
-				Common::BufferHelpers::WriteToBuffer(f.buffer, pack.buf);
-			}
-
-			pack.buf.toStart();
-
-			readPacket(pack);
-
-			// remove completed split buf
-
-			mSplitBuffers.remove(sb);
-		}
+		mSplitBuffers.remove(sb);
 	}
+}
 
-	void Networking::sendPacket(Network::Packet& packet)
-	{
-		mSocket->sendPacket(packet);
-	}
+void Networking::sendPacket(Network::Packet& packet)
+{
+	mSocket->sendPacket(packet);
+}
 
-	void Networking::sendConnectionlessPacket(Network::Packet& packet)
-	{
-		Network::Packet pack; // TODO: make split packet if buf.size too large
+void Networking::sendConnectionlessPacket(Network::Packet& packet)
+{
+	Network::Packet pack; // TODO: make split packet if buf.size too large
 
-		pack.adr = packet.adr;
-		pack.buf.write<int32_t>(-1);
+	pack.adr = packet.adr;
+	pack.buf.write<int32_t>(-1);
 
-		Common::BufferHelpers::WriteToBuffer(packet.buf, pack.buf);
+	Common::BufferHelpers::WriteToBuffer(packet.buf, pack.buf);
 
-		mSocket->sendPacket(pack);
-	}
+	Utils::dlog(Common::Helpers::BytesArrayToNiceString(packet.buf.getMemory(), packet.buf.getSize()));
+
+	mSocket->sendPacket(pack);
 }
