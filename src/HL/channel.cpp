@@ -321,14 +321,16 @@ void Channel::readNormalFragments(BitBuffer& msg)
 void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 {
 	auto sequence = msg.read<int32_t>();
-	auto offset = msg.read<int16_t>() - (int16_t)normalSize; // !!!
+	auto offset = msg.read<int16_t>();
 	auto size = msg.read<int16_t>();
 
 	int index = sequence << 16;
 	int count = sequence >> 16;
 	int total = sequence & 0xFFFF;
 
-	//mConsole->writeLine("file fragment " + std::to_string(index) + " (" + std::to_string(count) + "/" + std::to_string(total) + ")");
+	Utils::dlog("index: {} ({}/{}), offset: {}, size: {}", index, count, total, offset, size);
+
+	offset -= (int16_t)normalSize; // !!!
 
 	std::shared_ptr<FragBuffer> fb = nullptr;
 
@@ -391,6 +393,8 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 		buf.toStart();
 
+		Utils::dlog("fragments completed (size: {})", buf.getSize());
+
 		auto fileName = Common::BufferHelpers::ReadString(buf);
 		bool compressed = Common::BufferHelpers::ReadString(buf) == "bz2";
 		uint32_t size = buf.read<uint32_t>();
@@ -406,6 +410,8 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 			auto src_len = (unsigned int)(buf.getSize() - buf.getPosition());
 
 			BZ2_bzBuffToBuffDecompress(dst, &size, src, src_len, 1, 0);
+
+			Utils::dlog("decompress {} -> {}", src_len, size);
 		}
 		else
 		{
