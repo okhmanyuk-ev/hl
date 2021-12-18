@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include "utils.h"
+#include <magic_enum.hpp>
 
 using namespace HL;
 
@@ -206,17 +207,23 @@ void BaseClient::readConnectionlessReject(Network::Packet& packet)
 
 void BaseClient::readRegularMessages(BitBuffer& msg)
 {
+	static std::list<Protocol::Server::Message> history;
+	history.clear();
+
 	while (msg.hasRemaining())
 	{
 		auto index = msg.read<uint8_t>();
-			
+
 		if (index > 64)
 		{
 			readRegularGameMessage(msg, index);
 			continue;
 		}
+		auto svc = static_cast<Protocol::Server::Message>(index);
 
-		switch (static_cast<Protocol::Server::Message>(index))
+		history.push_back(svc);
+	
+		switch (svc)
 		{
 		case Protocol::Server::Message::Bad:
 			disconnect("svc_bad");
@@ -427,7 +434,12 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 			break;
 
 		default:
-			LOGCF("unknown svc: {}", Console::Color::Red, index); // TODO: should disconnect 
+			// TODO: should disconnect 
+
+			auto history_str = std::accumulate(history.begin(), history.end(), std::string(magic_enum::enum_name(*history.begin())),
+				[](auto a, auto b) { return a + ", " + std::string(magic_enum::enum_name(b)); });
+
+			LOGCF("unknown svc: {}, history: {}", Console::Color::Red, index, history_str);
 			return;
 		}
 	}
