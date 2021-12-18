@@ -1,11 +1,10 @@
 #pragma once
 
-#include <Core/engine.h>
-#include <Network/packet.h>
-#include <Network/system.h>
-#include <Common/bitbuffer.h>
-
-#include <vector>
+#include <core/engine.h>
+#include <network/packet.h>
+#include <network/system.h>
+#include <common/bitbuffer.h>
+#include <map>
 
 namespace HL
 {
@@ -42,10 +41,9 @@ namespace HL
 		struct SplitBuffer
 		{
 			Clock::TimePoint time;
-			int32_t index;
 			std::vector<Fragment> frags;
 		};
 
-		std::list<std::shared_ptr<SplitBuffer>> mSplitBuffers;
+		std::map<int32_t, std::shared_ptr<SplitBuffer>> mSplitBuffers;
 	};
 }

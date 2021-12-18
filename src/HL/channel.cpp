@@ -265,17 +265,10 @@ void Channel::readNormalFragments(BitBuffer& msg)
 
 	// check for completion
 
-	bool completed = true;
-
-	for (auto& f : fb->frags)
-	{
-		if (f.completed)
-			continue;
-
-		completed = false;
-		break;
-	}
-
+	bool completed = std::all_of(fb->frags.begin(), fb->frags.end(), [](const auto& frag) { 
+		return frag.completed; 
+	});
+	
 	if (completed)
 	{
 		BitBuffer buf;
@@ -369,16 +362,9 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 
 	// check for completion
 
-	bool completed = true;
-
-	for (auto& f : fb->frags)
-	{
-		if (f.completed)
-			continue;
-
-		completed = false;
-		break;
-	}
+	bool completed = std::all_of(fb->frags.begin(), fb->frags.end(), [](const auto& frag) {
+		return frag.completed;
+	});
 
 	if (completed)
 	{

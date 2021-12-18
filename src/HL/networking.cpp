@@ -1,6 +1,6 @@
 #include "networking.h"
-#include <Common/buffer_helpers.h>
 #include "utils.h"
+#include <common/buffer_helpers.h>
 #include <common/helpers.h>
 
 using namespace HL;
@@ -46,29 +46,20 @@ void Networking::readSplitPacket(Network::Packet& packet)
 	auto total = packet.buf.readBits(4);
 	auto count = packet.buf.readBits(4);
 
+	Utils::dlog("index: {}, total: {}, count: {}, data: \"{}\"", index, total, count + 1, Common::Helpers::BytesArrayToNiceString(packet.buf.getPositionMemory(), packet.buf.getRemaining()));
+
 	std::shared_ptr<SplitBuffer> sb = nullptr;
 
-	// search split buffer
-
-	for (auto& splitBuf : mSplitBuffers)
+	if (mSplitBuffers.contains(index))
 	{
-		if (splitBuf->index != index)
-			continue;
-
-		sb = splitBuf;
-		break;
+		sb = mSplitBuffers.at(index);
 	}
-
-	// allocate new buffer if we cannot found one
 
 	if (sb == nullptr)
 	{
 		sb = std::make_shared<SplitBuffer>();
-
-		sb->index = index;
 		sb->frags.resize(total);
-
-		mSplitBuffers.push_back(sb);
+		mSplitBuffers.insert({ index, sb });
 	}
 
 	sb->time = Clock::Now();
@@ -77,20 +68,13 @@ void Networking::readSplitPacket(Network::Packet& packet)
 
 	// write fragment data to buffer
 
-	frag.buffer.write(packet.buf.getMemory(), packet.buf.getRemaining());
+	frag.buffer.write(packet.buf.getPositionMemory(), packet.buf.getRemaining());
 
 	// check for completion
 
-	bool completed = true;
-
-	for (auto& f : sb->frags)
-	{
-		if (f.completed)
-			continue;
-
-		completed = false;
-		break;
-	}
+	bool completed = std::all_of(sb->frags.begin(), sb->frags.end(), [](const auto& frag) { 
+		return frag.completed; 
+	});
 
 	if (completed)
 	{
@@ -111,7 +95,7 @@ void Networking::readSplitPacket(Network::Packet& packet)
 
 		// remove completed split buf
 
-		mSplitBuffers.remove(sb);
+		mSplitBuffers.erase(index);
 	}
 }
 
