@@ -69,6 +69,7 @@ void Networking::readSplitPacket(Network::Packet& packet)
 	// write fragment data to buffer
 
 	frag.buffer.write(packet.buf.getPositionMemory(), packet.buf.getRemaining());
+	frag.completed = true;
 
 	// check for completion
 
