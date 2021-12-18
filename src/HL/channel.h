@@ -22,12 +22,12 @@ namespace HL
 		Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
 
 	public:
+		void transmit();
 		void process(BitBuffer& msg);
 		void addReliableMessage(BitBuffer& msg);
 		void fragmentateReliableBuffer(int fragment_size = 512, bool compress = true);
 
 	private:
-		void transmit();
 		void writeFragments(BitBuffer& msg);
 		void writeReliableMessages(BitBuffer& msg);
 		void readFragments(BitBuffer& msg);

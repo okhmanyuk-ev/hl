@@ -29,6 +29,7 @@ BaseClient::BaseClient(bool hltv) : Networking(),
 	CONSOLE->registerCommand("retry", "connect to the last server", CMD_METHOD(onRetry));
 	CONSOLE->registerCommand("cmd", "send command to server", CMD_METHOD(onCmd));
 	CONSOLE->registerCommand("fullserverinfo", "receiving from server", { "text" }, CMD_METHOD(onFullServerInfo));
+	CONSOLE->registerCommand("reconnect", CMD_METHOD(onReconnect));
 
 	/*
 
@@ -465,10 +466,6 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	if (mReadGameMessageCallback)
 	{
 		mReadGameMessageCallback(gmsg.name, buf.getMemory(), buf.getSize());
-	}
-	else
-	{
-		Utils::dlog(gmsg.name);
 	}
 }
 
@@ -1380,7 +1377,8 @@ void BaseClient::onConnect(CON_ARGS)
 
 void BaseClient::onDisconnect(CON_ARGS)
 {
-	// TODO: send signal to server
+	sendCommand("dropclient");
+	mChannel->transmit();
 	disconnect("client sent drop");
 }
 
@@ -1410,7 +1408,17 @@ void BaseClient::onFullServerInfo(CON_ARGS)
 	auto text = CON_ARG(0);
 }
 
-
+void BaseClient::onReconnect(CON_ARGS)
+{
+	if (mState < State::Connected)
+	{
+		LOG("cannot reconnect, not connected");
+		return;
+	}
+	mEntities.clear();
+	mState = State::Connected;
+	sendCommand("new");
+}
 
 
 

@@ -120,6 +120,7 @@ namespace HL
 		void onRetry(CON_ARGS);
 		void onCmd(CON_ARGS);
 		void onFullServerInfo(CON_ARGS);
+		void onReconnect(CON_ARGS);
 
 	//protected:
 	//	virtual std::vector<std::pair<std::string, std::string>> getProtInfo() = 0;
