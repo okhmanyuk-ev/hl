@@ -9,6 +9,15 @@ namespace HL
 	class HLTVClient : public BaseClient
 	{
 	public:
+		enum class Team
+		{
+			UNASSIGNED,
+			TERRORIST,
+			CT,
+			SPECTATOR
+		};
+
+	public:
 		HLTVClient();
 		~HLTVClient();
 
@@ -20,5 +29,11 @@ namespace HL
 		std::string mUserInfoHSpecs = "0";
 		std::string mUserInfoHSlots = "0";
 		std::string mUserInfoHDelay = "30";
+
+	public:
+		const auto& getTeamInfo() const { return mTeamInfo; }
+
+	private:
+		std::map<uint8_t, Team> mTeamInfo;
 	};
 }
