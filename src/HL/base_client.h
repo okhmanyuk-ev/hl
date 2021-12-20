@@ -253,12 +253,19 @@ namespace HL
 		std::map<std::string, Console::CVar::Getter> mUserInfos;
 
 	public:
-		using BeamPointsCallback = std::function<void(glm::vec3 start, glm::vec3 end, uint8_t lifetime, glm::vec4 color)>;
+		using BeamPointsCallback = std::function<void(const glm::vec3& start, const glm::vec3& end, uint8_t lifetime, const glm::vec4& color)>;
+		using EventCallback = std::function<void(const Protocol::Event& evt)>;
 		
 	public:
 		void setBeamPointsCallback(BeamPointsCallback value) { mBeamPointsCallback = value; }
+		void setEventCallback(EventCallback value) { mEventCallback = value; }
 
 	private:
 		BeamPointsCallback mBeamPointsCallback = nullptr;
+		EventCallback mEventCallback = nullptr;
+
+	private:
+		bool mDlogs = true;
+		bool mDlogsEvents = false;
 	};
 }

@@ -19,20 +19,13 @@ namespace HL::Utils
 	{
 		dlog(std::string text, Args&&... args, const std::source_location& location = std::source_location::current())
 		{
-			LOGCF("[{}] " + text, Console::Color::DarkGray, location.function_name(), args...);
+			if (CONSOLE->getCVars().at("dlogs").getGetter()().at(0) != "1")
+				return;
 
-			/*std::cout << loc.function_name() << " line " << loc.line() << ": ";
-			((std::cout << std::forward<Ts>(ts) << " "), ...);
-			std::cout << std::endl;*/
+			LOGCF("[{}] " + text, Console::Color::DarkGray, location.function_name(), args...);
 		}
 	};
 
 	template <typename... Args>
 	dlog(std::string, Args&&...) -> dlog<Args...>;
-
-	/*template <class... Args>
-	void dlog(std::string text, const std::source_location& location = std::source_location::current())
-	{
-		LOGCF("[{}] " + text, Console::Color::DarkGray, location.function_name());
-	}*/
 }

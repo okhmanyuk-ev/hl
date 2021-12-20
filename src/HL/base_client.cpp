@@ -25,6 +25,9 @@ using namespace HL;
 BaseClient::BaseClient(bool hltv) : Networking(),
 	mHLTV(hltv)
 {
+	CONSOLE->registerCVar("dlogs", { "bool" }, CVAR_GETTER_BOOL(mDlogs), CVAR_SETTER_BOOL(mDlogs));
+	CONSOLE->registerCVar("dlogs_events", { "bool" }, CVAR_GETTER_BOOL(mDlogsEvents), CVAR_SETTER_BOOL(mDlogsEvents));
+
 	CONSOLE->registerCommand("connect", "connect to the server", { "address" }, CMD_METHOD(onConnect));
 	CONSOLE->registerCommand("disconnect", "disconnect from server", CMD_METHOD(onDisconnect));
 	CONSOLE->registerCommand("retry", "connect to the last server", CMD_METHOD(onRetry));
@@ -509,7 +512,14 @@ void BaseClient::readRegularEvent(BitBuffer& msg)
 		if (msg.readBit())
 			evt.fire_time = static_cast<float>(msg.readBits(16));
 
-		// onEvent(evt); // TODO: do it
+		if (mDlogsEvents)
+		{
+			Utils::dlog("index: {}, packet: {}, entity: {}, fire_time: {}, flags: {}", evt.index, evt.packet_index, 
+				evt.entity_index, evt.fire_time, evt.flags);
+		}
+
+		if (mEventCallback)
+			mEventCallback(evt);
 	}
 
 	msg.alignByteBoundary();
@@ -729,7 +739,14 @@ void BaseClient::readRegularEventReliable(BitBuffer& msg)
 
 	msg.alignByteBoundary();
 
-	// onEvent(evt);
+	if (mDlogsEvents)
+	{
+		Utils::dlog("index: {}, packet: {}, entity: {}, fire_time: {}, flags: {}", evt.index, evt.packet_index,
+			evt.entity_index, evt.fire_time, evt.flags);
+	}
+
+	if (mEventCallback)
+		mEventCallback(evt);
 }
 
 void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)

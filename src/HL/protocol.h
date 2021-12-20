@@ -466,41 +466,41 @@ namespace HL::Protocol
 
 	struct EventArgs
 	{
-		int		flags;
+		int		flags = 0;
 
 		// Transmitted
-		int		entindex;
+		int		entindex = 0;
 
-		float	origin[3];
-		float	angles[3];
-		float	velocity[3];
+		glm::vec3	origin = { 0.0f, 0.0f, 0.0f };
+		glm::vec3	angles = { 0.0f, 0.0f, 0.0f };
+		glm::vec3	velocity = { 0.0f, 0.0f, 0.0f };
 
-		int		ducking;
+		int		ducking = 0;
 
-		float	fparam1;
-		float	fparam2;
+		float	fparam1 = 0;
+		float	fparam2 = 0;
 
-		int		iparam1;
-		int		iparam2;
+		int		iparam1 = 0;
+		int		iparam2 = 0;
 
-		int		bparam1;
-		int		bparam2;
+		int		bparam1 = 0;
+		int		bparam2 = 0;
 	};
 
 	struct Event // event_info_t
 	{
-		unsigned short index;			  // 0 implies not in use
+		unsigned short index = 0;			  // 0 implies not in use
 
-		short packet_index;      // Use data from state info for entity in delta_packet .  -1 implies separate info based on event
+		short packet_index = 0;      // Use data from state info for entity in delta_packet .  -1 implies separate info based on event
 								 // parameter signature
-		short entity_index;      // The edict this event is associated with
+		short entity_index = 0;      // The edict this event is associated with
 
-		float fire_time;        // if non-zero, the time when the event should be fired ( fixed up on the client )
+		float fire_time = 0.0f;        // if non-zero, the time when the event should be fired ( fixed up on the client )
 
 		EventArgs args;
 
 		// CLIENT ONLY	
-		int	  flags;			// Reliable or not, etc.
+		int	  flags = 0;			// Reliable or not, etc.
 	};
 
 	struct UserCmd
