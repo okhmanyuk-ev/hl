@@ -18,6 +18,7 @@
 #include <glm/ext.hpp>
 #include "utils.h"
 #include <magic_enum.hpp>
+#include <graphics/all.h>
 
 using namespace HL;
 
@@ -780,6 +781,12 @@ void BaseClient::readRegularTempEntity(BitBuffer& msg)
 
 	int type = (int)msg.read<uint8_t>();
 
+	if (type == (int)Protocol::TempEntity::BeamPoints)
+	{
+		readTempEntityBeamPoints(msg);
+		return;
+	}
+
 	int length = TE_LENGTH[type];
 
 	if (length == -1)
@@ -1243,6 +1250,39 @@ void BaseClient::readRegularCVarValue2(BitBuffer& msg)
 	auto id = msg.read<uint32_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
 	LOGC("SVC_SENDCVARVALUE2: " + std::to_string(id) + ", " + name, Console::Color::Red);
+}
+
+void BaseClient::readTempEntityBeamPoints(BitBuffer& msg)
+{
+	glm::vec3 start;
+	start.x = Common::BufferHelpers::ReadCoord(msg);
+	start.y = Common::BufferHelpers::ReadCoord(msg);
+	start.z = Common::BufferHelpers::ReadCoord(msg);
+
+	glm::vec3 end;
+	end.x = Common::BufferHelpers::ReadCoord(msg);
+	end.y = Common::BufferHelpers::ReadCoord(msg);
+	end.z = Common::BufferHelpers::ReadCoord(msg);
+
+	auto texture = msg.read<int16_t>();
+
+	msg.read<uint8_t>(); // start frame
+	msg.read<uint8_t>(); // framerate
+
+	auto lifetime = msg.read<uint8_t>();
+
+	auto width = msg.read<uint8_t>();
+	auto noise = msg.read<uint8_t>();
+
+	auto r = msg.read<uint8_t>();
+	auto g = msg.read<uint8_t>();
+	auto b = msg.read<uint8_t>();
+	auto a = msg.read<uint8_t>();
+
+	auto speed = msg.read<uint8_t>();
+
+	if (mBeamPointsCallback)
+		mBeamPointsCallback(start, end, lifetime, Graphics::Color::ToNormalized(r, g, b, a));
 }
 
 #pragma endregion

@@ -46,7 +46,7 @@ void Networking::readSplitPacket(Network::Packet& packet)
 	auto total = packet.buf.readBits(4);
 	auto count = packet.buf.readBits(4);
 
-	Utils::dlog("index: {}, total: {}, count: {}, data: \"{}\"", index, total, count + 1, Common::Helpers::BytesArrayToNiceString(packet.buf.getPositionMemory(), packet.buf.getRemaining()));
+	Utils::dlog("index: {} ({}/{}), size: {}, data: \"{}\"", index, count + 1, total, packet.buf.getRemaining(), Common::Helpers::BytesArrayToNiceString(packet.buf.getPositionMemory(), packet.buf.getRemaining()));
 
 	std::shared_ptr<SplitBuffer> sb = nullptr;
 

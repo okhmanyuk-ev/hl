@@ -86,6 +86,8 @@ namespace HL
 		void readRegularResourceLocation(BitBuffer& msg);
 		void readRegularCVarValue(BitBuffer& msg);
 		void readRegularCVarValue2(BitBuffer& msg);
+
+		void readTempEntityBeamPoints(BitBuffer& msg);
 #pragma endregion
 
 #pragma region write
@@ -249,5 +251,14 @@ namespace HL
 
 	private:
 		std::map<std::string, Console::CVar::Getter> mUserInfos;
+
+	public:
+		using BeamPointsCallback = std::function<void(glm::vec3 start, glm::vec3 end, uint8_t lifetime, glm::vec4 color)>;
+		
+	public:
+		void setBeamPointsCallback(BeamPointsCallback value) { mBeamPointsCallback = value; }
+
+	private:
+		BeamPointsCallback mBeamPointsCallback = nullptr;
 	};
 }

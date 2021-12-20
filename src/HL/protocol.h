@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/glm.hpp>
 
 namespace HL::Protocol
 {
@@ -245,7 +246,7 @@ namespace HL::Protocol
 		int messagenum;
 
 		// Fields which can be transitted and reconstructed over the network stream
-		float origin[3];
+		glm::vec3 origin;
 		float angles[3];
 
 		int modelindex;
