@@ -89,6 +89,12 @@ namespace HL
 		void readRegularCVarValue2(BitBuffer& msg);
 
 		void readTempEntityBeamPoints(BitBuffer& msg);
+		void readTempEntityExplosion(BitBuffer& msg);
+		void readTempEntitySmoke(BitBuffer& msg);
+		void readTempEntitySparks(BitBuffer& msg);
+		void readTempEntityGlowSprite(BitBuffer& msg);
+		void readTempEntitySprite(BitBuffer& msg);
+		void readTempEntityBloodSprite(BitBuffer& msg);
 #pragma endregion
 
 #pragma region write
@@ -259,19 +265,39 @@ namespace HL
 		std::map<std::string, Console::CVar::Getter> mUserInfos;
 
 	public:
-		using BeamPointsCallback = std::function<void(const glm::vec3& start, const glm::vec3& end, uint8_t lifetime, const glm::vec4& color)>;
 		using EventCallback = std::function<void(const Protocol::Event& evt)>;
-		
+		using BeamPointsCallback = std::function<void(const glm::vec3& start, const glm::vec3& end, uint8_t lifetime, const glm::vec4& color)>;
+		using BloodSpriteCallback = std::function<void(const glm::vec3& origin)>;
+		using SparksCallback = std::function<void(const glm::vec3& origin)>;
+		using GlowSpriteCallback = std::function<void(const glm::vec3& origin, int model_index)>;
+		using SpriteCallback = std::function<void(const glm::vec3& origin, int model_index)>;
+		using SmokeCallback = std::function<void(const glm::vec3& origin, int model_index)>;
+		using ExplosionCallback = std::function<void(const glm::vec3& origin, int model_index)>;
+
 	public:
-		void setBeamPointsCallback(BeamPointsCallback value) { mBeamPointsCallback = value; }
 		void setEventCallback(EventCallback value) { mEventCallback = value; }
+		void setBeamPointsCallback(BeamPointsCallback value) { mBeamPointsCallback = value; }
+		void setBloodSpriteCallback(BloodSpriteCallback value) { mBloodSpriteCallback = value; }
+		void setSparksCallback(SparksCallback value) { mSparksCallback = value; }
+		void setGlowSpriteCallback(GlowSpriteCallback value) { mGlowSpriteCallback = value; }
+		void setSpriteCallback(SpriteCallback value) { mSpriteCallback = value; }
+		void setSmokeCallback(SmokeCallback value) { mSmokeCallback = value; }
+		void setExplosionCallback(ExplosionCallback value) { mExplosionCallback = value; }
 
 	private:
-		BeamPointsCallback mBeamPointsCallback = nullptr;
 		EventCallback mEventCallback = nullptr;
+		BeamPointsCallback mBeamPointsCallback = nullptr;
+		BloodSpriteCallback mBloodSpriteCallback = nullptr;
+		SparksCallback mSparksCallback = nullptr;
+		GlowSpriteCallback mGlowSpriteCallback = nullptr;
+		SpriteCallback mSpriteCallback = nullptr;
+		SmokeCallback mSmokeCallback = nullptr;
+		ExplosionCallback mExplosionCallback = nullptr;
 
 	private:
 		bool mDlogs = true;
-		bool mDlogsEvents = false;
+		bool mDlogsEvents = true;
+		bool mDlogsGmsg = true;
+		bool mDlogsTempEnts = true;
 	};
 }

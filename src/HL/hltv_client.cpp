@@ -53,6 +53,10 @@ HLTVClient::HLTVClient() : BaseClient(true)
 
 			mTeamInfo[player_id] = magic_enum::enum_cast<Team>(team).value_or(Team::UNASSIGNED);
 		}
+		else if (name == "ReqState")
+		{
+			sendCommand("VModEnable 1");
+		}
 	});
 }
 

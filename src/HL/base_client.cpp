@@ -27,6 +27,8 @@ BaseClient::BaseClient(bool hltv) : Networking(),
 {
 	CONSOLE->registerCVar("dlogs", { "bool" }, CVAR_GETTER_BOOL(mDlogs), CVAR_SETTER_BOOL(mDlogs));
 	CONSOLE->registerCVar("dlogs_events", { "bool" }, CVAR_GETTER_BOOL(mDlogsEvents), CVAR_SETTER_BOOL(mDlogsEvents));
+	CONSOLE->registerCVar("dlogs_gmsg", { "bool" }, CVAR_GETTER_BOOL(mDlogsGmsg), CVAR_SETTER_BOOL(mDlogsGmsg));
+	CONSOLE->registerCVar("dlogs_temp_ents", { "bool" }, CVAR_GETTER_BOOL(mDlogsTempEnts), CVAR_SETTER_BOOL(mDlogsTempEnts));
 
 	CONSOLE->registerCommand("connect", "connect to the server", { "address" }, CMD_METHOD(onConnect));
 	CONSOLE->registerCommand("disconnect", "disconnect from server", CMD_METHOD(onDisconnect));
@@ -212,9 +214,8 @@ void BaseClient::readConnectionlessReject(Network::Packet& packet)
 
 void BaseClient::readRegularMessages(BitBuffer& msg)
 {
-	static std::list<Protocol::Server::Message> history;
-	history.clear();
-
+	std::list<Protocol::Server::Message> history;
+	
 	while (msg.hasRemaining())
 	{
 		auto index = msg.read<uint8_t>();
@@ -466,6 +467,9 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	BitBuffer buf;
 	buf.setSize(size);
 	msg.read(buf.getMemory(), size);
+
+	if (mDlogsGmsg)
+		Utils::dlog("{}", gmsg.name);
 
 	if (mReadGameMessageCallback)
 	{
@@ -773,83 +777,49 @@ void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)
 
 void BaseClient::readRegularTempEntity(BitBuffer& msg)
 {
-	static const int TE_MAX = 128;
+	auto type = (Protocol::TempEntity)msg.read<uint8_t>();
 
-	static const int TE_LENGTH[TE_MAX] =
+	if (mDlogsTempEnts)
+		Utils::dlog("{}", magic_enum::enum_name(type));
+
+	switch (type)
 	{
-		24, 20,  6, 11,  6, 10, 12, 17, 16,  6,  6,  6,  8, -1,  9, 19,
-		-2, 10, 16, 24, 24, 24, 10, 11, 16, 19, -2, 12, 16, -1, 19, 17,
-		-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
-		-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
-		-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
-		-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
-		-2, -2, -2,  2, 10, 14, 12, 14,  9,  5, 17, 13, 24,  9, 17,  7,
-		10, 19, 19, 12,  7,  7,  9, 16, 18,  6, 10, 13,  7,  1, 18, 15,
-	};
-
-	int type = (int)msg.read<uint8_t>();
-
-	if (type == (int)Protocol::TempEntity::BeamPoints)
-	{
+	case Protocol::TempEntity::BeamPoints:
 		readTempEntityBeamPoints(msg);
-		return;
-	}
-
-	int length = TE_LENGTH[type];
-
-	if (length == -1)
-	{
-		if (type == (int)Protocol::TempEntity::BspDecal)
-		{
-			msg.seek(8);
-
-			if (msg.read<uint16_t>())
-				msg.seek(2);
-		}
-		else if (type == (int)Protocol::TempEntity::TextMessage)
-		{
-			msg.seek(5);
-
-			if (msg.read<uint8_t>() == 2)
-				msg.seek(2);
-
-			msg.seek(14);
-			Common::BufferHelpers::ReadString(msg);
-		}
-	}
-	else
-	{
-		msg.seek(length);
-	}
-
-	return;
-
-	switch ((Protocol::TempEntity)msg.read<uint8_t>())
-	{
-	case Protocol::TempEntity::BeamPoints:;
-	case Protocol::TempEntity::BeamEntPoint:;
-	case Protocol::TempEntity::GunShot:;
-	case Protocol::TempEntity::Explosion:;
-	case Protocol::TempEntity::TarExplosion:;
-	case Protocol::TempEntity::Smoke:;
-	case Protocol::TempEntity::Tracer:;
+		break;
+	/*case Protocol::TempEntity::BeamEntPoint:;
+	case Protocol::TempEntity::GunShot:;*/
+	case Protocol::TempEntity::Explosion:
+		readTempEntityExplosion(msg);
+		break;
+	//case Protocol::TempEntity::TarExplosion:;
+	case Protocol::TempEntity::Smoke:
+		readTempEntitySmoke(msg);
+		break;
+	/*case Protocol::TempEntity::Tracer:;
 	case Protocol::TempEntity::Lightning:;
-	case Protocol::TempEntity::BeamEnts:;
-	case Protocol::TempEntity::Sparks:;
-	case Protocol::TempEntity::LavaSplash:;
+	case Protocol::TempEntity::BeamEnts:;*/
+	case Protocol::TempEntity::Sparks:
+		readTempEntitySparks(msg);
+		break;
+	/*case Protocol::TempEntity::LavaSplash:;
 	case Protocol::TempEntity::Teleport:;
 	case Protocol::TempEntity::Explosion2:;
 	case Protocol::TempEntity::BspDecal:;
 	case Protocol::TempEntity::Implosion:;
-	case Protocol::TempEntity::SpriteTrail:;
-	case Protocol::TempEntity::Sprite:;
-	case Protocol::TempEntity::BeamSprite:;
+	case Protocol::TempEntity::SpriteTrail:;*/
+	case Protocol::TempEntity::Sprite:
+		readTempEntitySprite(msg);
+		break;
+	/*case Protocol::TempEntity::BeamSprite:;
 	case Protocol::TempEntity::BeamTorus:;
 	case Protocol::TempEntity::BeamDisk:;
 	case Protocol::TempEntity::BeamCylinder:;
-	case Protocol::TempEntity::BeamFollow:;
-	case Protocol::TempEntity::GlowSprite:;
-	case Protocol::TempEntity::BeamRing:;
+	case Protocol::TempEntity::BeamFollow:;*/
+	case Protocol::TempEntity::GlowSprite:
+		readTempEntityGlowSprite(msg);
+		break;
+	/*case Protocol::TempEntity::BeamRing:;
 	case Protocol::TempEntity::StreakSplash:;
 	case Protocol::TempEntity::DLight:;
 	case Protocol::TempEntity::ELight:;
@@ -871,9 +841,11 @@ void BaseClient::readRegularTempEntity(BitBuffer& msg)
 	case Protocol::TempEntity::ArmorRicochet:;
 	case Protocol::TempEntity::PlayerDecal:;
 	case Protocol::TempEntity::Bubbles:;
-	case Protocol::TempEntity::BubbleTrail:;
-	case Protocol::TempEntity::BloodSprite:;
-	case Protocol::TempEntity::WorldDecal:;
+	case Protocol::TempEntity::BubbleTrail:;*/
+	case Protocol::TempEntity::BloodSprite:
+		readTempEntityBloodSprite(msg);
+		break;
+	/*case Protocol::TempEntity::WorldDecal:;
 	case Protocol::TempEntity::WorldDecalHigh:;
 	case Protocol::TempEntity::DecalHigh:;
 	case Protocol::TempEntity::Projectile:;
@@ -884,7 +856,48 @@ void BaseClient::readRegularTempEntity(BitBuffer& msg)
 	case Protocol::TempEntity::PlayerAttachment:;
 	case Protocol::TempEntity::KillPlayerAttachments:;
 	case Protocol::TempEntity::MultiGunshot:;
-	case Protocol::TempEntity::UserTracer:;
+	case Protocol::TempEntity::UserTracer:;*/
+	default:
+		static const int TE_MAX = 128;
+
+		static const int TE_LENGTH[TE_MAX] =
+		{
+			24, 20,  6, 11,  6, 10, 12, 17, 16,  6,  6,  6,  8, -1,  9, 19,
+			-2, 10, 16, 24, 24, 24, 10, 11, 16, 19, -2, 12, 16, -1, 19, 17,
+			-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+			-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+			-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+			-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
+			-2, -2, -2,  2, 10, 14, 12, 14,  9,  5, 17, 13, 24,  9, 17,  7,
+			10, 19, 19, 12,  7,  7,  9, 16, 18,  6, 10, 13,  7,  1, 18, 15,
+		};
+
+		int length = TE_LENGTH[(int)type];
+
+		if (length == -1)
+		{
+			if (type == Protocol::TempEntity::BspDecal)
+			{
+				msg.seek(8);
+
+				if (msg.read<uint16_t>())
+					msg.seek(2);
+			}
+			else if (type == Protocol::TempEntity::TextMessage)
+			{
+				msg.seek(5);
+
+				if (msg.read<uint8_t>() == 2)
+					msg.seek(2);
+
+				msg.seek(14);
+				Common::BufferHelpers::ReadString(msg);
+			}
+		}
+		else
+		{
+			msg.seek(length);
+		}
 	}
 }
 
@@ -1291,6 +1304,97 @@ void BaseClient::readTempEntityBeamPoints(BitBuffer& msg)
 
 	if (mBeamPointsCallback)
 		mBeamPointsCallback(start, end, lifetime, Graphics::Color::ToNormalized(r, g, b, a));
+}
+
+void BaseClient::readTempEntityExplosion(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+
+	auto model_index = msg.read<int16_t>();
+
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+
+	if (mExplosionCallback)
+		mExplosionCallback(origin, model_index);
+}
+
+void BaseClient::readTempEntitySmoke(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+
+	auto model_index = msg.read<int16_t>();
+
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+
+	if (mSmokeCallback)
+		mSmokeCallback(origin, model_index);
+}
+
+void BaseClient::readTempEntitySparks(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+
+	if (mSparksCallback)
+		mSparksCallback(origin);
+}
+
+void BaseClient::readTempEntityGlowSprite(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+
+	auto model_index = msg.read<int16_t>();
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+
+	if (mGlowSpriteCallback)
+		mGlowSpriteCallback(origin, model_index);
+}
+
+void BaseClient::readTempEntitySprite(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+
+	auto model_index = msg.read<int16_t>();
+
+	msg.read<uint8_t>(); // ?
+	msg.read<uint8_t>(); // ?
+
+	if (mSpriteCallback)
+		mSpriteCallback(origin, model_index);
+}
+
+void BaseClient::readTempEntityBloodSprite(BitBuffer& msg)
+{
+	glm::vec3 origin;
+	origin.x = Common::BufferHelpers::ReadCoord(msg);
+	origin.y = Common::BufferHelpers::ReadCoord(msg);
+	origin.z = Common::BufferHelpers::ReadCoord(msg);
+	auto blood_spray = msg.read<int16_t>();
+	auto blood_drop = msg.read<int16_t>();
+	auto color = msg.read<uint8_t>();
+	auto amount = msg.read<uint8_t>();
+
+	if (mBloodSpriteCallback)
+		mBloodSpriteCallback(origin);
 }
 
 #pragma endregion

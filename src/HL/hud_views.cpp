@@ -6,174 +6,172 @@
 #include <Shared/imgui_user.h>
 
 #include <algorithm>
+#include <shared/stats_system.h>
 
-namespace HL
+using namespace HL;
+
+HudViews::HudViews(BaseClient& baseClient) : 
+	mBaseClient(baseClient)
 {
-	HudViews::HudViews(BaseClient& baseClient) : 
-		mBaseClient(baseClient)
-	{
-		CONSOLE->registerCVar("hud_show_net", "show net graph on screen", { "int" },
-			CVAR_GETTER_INT(mWantShowNet),
-			CVAR_SETTER(mWantShowNet = CON_ARG_INT(0)));
+	CONSOLE->registerCVar("hud_show_net", "show net graph on screen", { "int" },
+		CVAR_GETTER_INT(mWantShowNet),
+		CVAR_SETTER(mWantShowNet = CON_ARG_INT(0)));
 		
-		CONSOLE->registerCVar("hud_show_ents", "show entities information on screen", { "int" },
-			CVAR_GETTER_INT(mWantShowEntities),
-			CVAR_SETTER(mWantShowEntities = CON_ARG_INT(0)));
+	CONSOLE->registerCVar("hud_show_ents", "show entities information on screen", { "int" },
+		CVAR_GETTER_INT(mWantShowEntities),
+		CVAR_SETTER(mWantShowEntities = CON_ARG_INT(0)));
+}
+
+void HudViews::onFrame()
+{
+	if (mWantShowNet > 0)
+	{
+		const auto& channel = mBaseClient.getChannel();
+		if (channel.has_value())
+		{
+			STATS_INDICATE_GROUP("netchan_seq", "incoming seq", channel->getIncomingSequence());
+			STATS_INDICATE_GROUP("netchan_seq", "outgoing seq", channel->getOutgoingSequence());
+			STATS_INDICATE_GROUP("netchan_rel", "incoming rel", channel->getIncomingReliable());
+			STATS_INDICATE_GROUP("netchan_rel", "outgoing rel", channel->getOutgoingReliable());
+			STATS_INDICATE_GROUP("netchan", "latency", Clock::ToMilliseconds(channel->getLatency()));
+		}
 	}
 
-	void HudViews::onFrame()
+	if (mWantShowEntities)
 	{
-		if (mWantShowNet > 0)
+		ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(-1, PLATFORM->getLogicalHeight() - 20.0f));
+			
+			
+			
+		/*ImGui::Begin("Entities", nullptr, ImGui::User::ImGuiWindowFlags_ControlPanel);
+		ImGui::SetWindowPos(ImGui::User::TopRightCorner(mPlatformSystem.getWidth(), mPlatformSystem.getHeight()));
+
+		const auto& resources = mBaseClient.getResources();
+
+		for (const auto& [index, entity] : mBaseClient.getEntities())
 		{
-			ImGui::Begin("NetGraph", nullptr, ImGui::User::ImGuiWindowFlags_Overlay);
-			ImGui::SetWindowPos(ImGui::User::BottomRightCorner());
-			const auto& channel = mBaseClient.getChannel();
-			if (channel.has_value())
+			auto model = std::find_if(resources.cbegin(), resources.cend(), [&entity](const HL::Protocol::Resource& res) {
+				return res.index == entity->modelindex && res.type == HL::Protocol::Resource::Type::Model;
+			});
+
+			if (model == resources.end())
+				continue;
+
+			ImGui::Text("%d. %s %.0f %.0f %.0f", index, model->name.c_str(),
+				entity->origin[0], entity->origin[1], entity->origin[2]);
+
+			if (ImGui::IsItemHovered())
 			{
-				ImGui::Text("Incoming Seq: %d", channel->getIncomingSequence());
-				ImGui::Text("Outgoing Seq: %d", channel->getOutgoingSequence());
-				ImGui::Text("Incoming Rel: %d", int(channel->getIncomingReliable()));
-				ImGui::Text("Outgoing Rel: %d", int(channel->getOutgoingReliable()));
-				ImGui::Text("Ping: %d", channel->getLatency());
+				ImGui::BeginTooltip();
+				ImGui::Text("Model: %s", model->name.c_str());
+				ImGui::Text("Origin: %.0f %.0f %.0f", entity->origin[0], entity->origin[1], entity->origin[2]);
+				ImGui::Text("Angles: %.0f %.0f %.0f", entity->angles[0], entity->angles[1], entity->angles[2]);
+				ImGui::EndTooltip();
 			}
-			ImGui::End();
 		}
 
-		if (mWantShowEntities)
+		ImGui::End();*/
+
+
+
+
+
+
+
+
+
+
+		ImGui::Begin("Entities", (bool*)1,
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings);
+
+		ImGui::SetWindowPos(ImGui::User::TopRightCorner());
+
+		struct Column
 		{
-			ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(-1, PLATFORM->getLogicalHeight() - 20.0f));
-			
-			
-			
-			/*ImGui::Begin("Entities", nullptr, ImGui::User::ImGuiWindowFlags_ControlPanel);
-			ImGui::SetWindowPos(ImGui::User::TopRightCorner(mPlatformSystem.getWidth(), mPlatformSystem.getHeight()));
+			const char* header;
+			float size = 0;
+		};
 
-			const auto& resources = mBaseClient.getResources();
+		std::vector<Column> columns
+		{
+			{ "" },
+			{ "Model" },
+			{ "Position" },
+			{ "Angles" },
+			{ "MoveType" }
+		};
 
-			for (const auto& [index, entity] : mBaseClient.getEntities())
-			{
-				auto model = std::find_if(resources.cbegin(), resources.cend(), [&entity](const HL::Protocol::Resource& res) {
-					return res.index == entity->modelindex && res.type == HL::Protocol::Resource::Type::Model;
-				});
+		ImGui::Columns(columns.size(), (const char*)0, false);
 
-				if (model == resources.end())
-					continue;
+		for (auto &column : columns)
+		{
+			ImGui::Text(column.header);
+			ImGui::NextColumn();
+			column.size = ImGui::CalcTextSize(column.header).x;
+		}
 
-				ImGui::Text("%d. %s %.0f %.0f %.0f", index, model->name.c_str(),
-					entity->origin[0], entity->origin[1], entity->origin[2]);
-
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::BeginTooltip();
-					ImGui::Text("Model: %s", model->name.c_str());
-					ImGui::Text("Origin: %.0f %.0f %.0f", entity->origin[0], entity->origin[1], entity->origin[2]);
-					ImGui::Text("Angles: %.0f %.0f %.0f", entity->angles[0], entity->angles[1], entity->angles[2]);
-					ImGui::EndTooltip();
-				}
-			}
-
-			ImGui::End();*/
+		ImGui::Separator();
 
 
+		const auto& resources = mBaseClient.getResources();
 
+		for (const auto [index, entity] : mBaseClient.getEntities())
+		{
+			auto model = std::find_if(resources.cbegin(), resources.cend(), [e = entity](const auto& res) {
+				return res.index == e->modelindex && res.type == HL::Protocol::Resource::Type::Model;
+			});
 
+			if (model == resources.end()) // TODO: assert here
+				continue;
 
+			if (model->name.empty())
+				continue;
 
-
-
-
-
-			ImGui::Begin("Entities", (bool*)1,
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings);
-
-			ImGui::SetWindowPos(ImGui::User::TopRightCorner());
-
-			struct Column
-			{
-				const char* header;
-				float size = 0;
-			};
-
-			std::vector<Column> columns
-			{
-				{ "" },
-				{ "Model" },
-				{ "Position" },
-				{ "Angles" },
-				{ "MoveType" }
-			};
-
-			ImGui::Columns(columns.size(), (const char*)0, false);
-
-			for (auto &column : columns)
-			{
-				ImGui::Text(column.header);
-				ImGui::NextColumn();
-				column.size = ImGui::CalcTextSize(column.header).x;
-			}
-
-			ImGui::Separator();
-
-
-			const auto& resources = mBaseClient.getResources();
-
-			for (const auto [index, entity] : mBaseClient.getEntities())
-			{
-				auto model = std::find_if(resources.cbegin(), resources.cend(), [e = entity](const auto& res) {
-					return res.index == e->modelindex && res.type == HL::Protocol::Resource::Type::Model;
-				});
-
-				if (model == resources.end()) // TODO: assert here
-					continue;
-
-				if (model->name.empty())
-					continue;
-
-				if (model->name[0] == '*')
-					continue;
+			if (model->name[0] == '*')
+				continue;
 				
-				const std::vector<std::string> content
-				{
-					{ std::to_string(index) + "." },
-					{ model->name },
-					{ std::to_string((int)entity->origin[0]) + " " +
-						std::to_string((int)entity->origin[1]) + " " +
-						std::to_string((int)entity->origin[2]) },
-					{ std::to_string((int)entity->angles[0]) + " " +
-						std::to_string((int)entity->angles[1]) + " " +
-						std::to_string((int)entity->angles[2]) },
-					{ std::to_string(entity->movetype) }
-				};
-
-				for (size_t i = 0; i < content.size(); i++)
-				{
-					auto text = std::next(content.begin(), i);
-
-					ImGui::Text((*text).c_str());
-					ImGui::NextColumn();
-
-					auto column = std::next(columns.begin(), i);
-					auto size = ImGui::CalcTextSize((*text).c_str()).x;
-
-					if (column->size < size)
-						column->size = size;
-				}
-			}
-
-			float offset = 0.0f;
-
-			for (size_t i = 0; i < columns.size(); i++)
+			const std::vector<std::string> content
 			{
-				ImGui::SetColumnOffset(i, offset);
-				offset += std::next(columns.begin(), i)->size + 25;
+				{ std::to_string(index) + "." },
+				{ model->name },
+				{ std::to_string((int)entity->origin[0]) + " " +
+					std::to_string((int)entity->origin[1]) + " " +
+					std::to_string((int)entity->origin[2]) },
+				{ std::to_string((int)entity->angles[0]) + " " +
+					std::to_string((int)entity->angles[1]) + " " +
+					std::to_string((int)entity->angles[2]) },
+				{ std::to_string(entity->movetype) }
+			};
+
+			for (size_t i = 0; i < content.size(); i++)
+			{
+				auto text = std::next(content.begin(), i);
+
+				ImGui::Text((*text).c_str());
+				ImGui::NextColumn();
+
+				auto column = std::next(columns.begin(), i);
+				auto size = ImGui::CalcTextSize((*text).c_str()).x;
+
+				if (column->size < size)
+					column->size = size;
 			}
+		}
 
-			ImGui::SetWindowSize(ImVec2(offset + 15, -1));
+		float offset = 0.0f;
 
-			ImGui::End();
+		for (size_t i = 0; i < columns.size(); i++)
+		{
+			ImGui::SetColumnOffset(i, offset);
+			offset += std::next(columns.begin(), i)->size + 25;
+		}
+
+		ImGui::SetWindowSize(ImVec2(offset + 15, -1));
+
+		ImGui::End();
 			
 
 
@@ -186,6 +184,5 @@ namespace HL
 
 
 
-		}
 	}
 }
