@@ -10,6 +10,7 @@
 #include "channel.h"
 #include "delta.h"
 #include "encoder.h"
+#include <cstdint>
 
 namespace HL
 {
@@ -99,22 +100,27 @@ namespace HL
 		void writeRegularFileConsistency(BitBuffer& msg);
 #pragma endregion
 
-	private: // svc_serverinfo // TODO: make as structure
-		int32_t mSpawnCount;
-		int32_t mMapCrc;
-		int32_t mMaxPlayers;
-		
 	public:
-		auto getIndex() const { return mIndex; }
-		const auto& getHostname() const { return mHostname; }
-		const auto& getMap() const { return mMap; }
-		const auto& getGameDir() const { return mGameDir; }
+		struct ServerInfo
+		{
+			int32_t protocol = 0;
+			int32_t spawn_count = 0;
+			int32_t map_crc = 0;
+			int32_t max_players = 0;
+			int32_t index = 0;
+			bool deathmatch = false;
+			std::string hostname;
+			std::string map;
+			std::string game_dir;
+			std::string map_list;
+			bool vac2 = false;
+		};
+
+	public:
+		const auto& getServerInfo() const { return mServerInfo; }
 
 	private:
-		int32_t mIndex;
-		std::string mHostname;
-		std::string mMap;
-		std::string mGameDir;
+		std::optional<ServerInfo> mServerInfo;
 	
 	private:
 		void onConnect(CON_ARGS);
@@ -229,7 +235,7 @@ namespace HL
 		void sendCommand(const std::string& command);
 		void connect(const Network::Address& address);
 		void disconnect(const std::string& reason);
-	
+			
 	public:
 		bool isPlayerIndex(int value) const;
 

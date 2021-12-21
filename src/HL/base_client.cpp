@@ -475,7 +475,8 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 
 void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
 {
-	Platform::Asset::Write(mGameDir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
+	auto game_dir = mServerInfo.value().game_dir;
+	Platform::Asset::Write(game_dir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
 	
 	LOG("received: \"" + std::string(fileName) + "\", size: " +
@@ -618,42 +619,32 @@ void BaseClient::readRegularAngle(BitBuffer& msg)
 
 void BaseClient::readRegularServerInfo(BitBuffer& msg)
 {
-	int protocol = msg.read<int32_t>(); // must be Protocol.Version
-	mSpawnCount = msg.read<int32_t>();
-	mMapCrc = msg.read<int32_t>();
+	ServerInfo server_info;
+
+	server_info.protocol = msg.read<int32_t>();
+	server_info.spawn_count = msg.read<int32_t>();
+	server_info.map_crc = msg.read<int32_t>();
 
 	uint8_t crc[16];
 	msg.read(&crc, 16);
 
-	mMaxPlayers = (int32_t)msg.read<uint8_t>();
+	server_info.max_players = (int32_t)msg.read<uint8_t>();
+	server_info.index = (int32_t)msg.read<uint8_t>();
+	server_info.deathmatch = msg.read<uint8_t>() > 0;
+	server_info.game_dir = Common::BufferHelpers::ReadString(msg);
+	server_info.hostname = Common::BufferHelpers::ReadString(msg);
+	server_info.map = Common::BufferHelpers::ReadString(msg);
+	server_info.map_list = Common::BufferHelpers::ReadString(msg);
+	server_info.vac2 = msg.read<uint8_t>() > 0;
 
-	// SetLength(Players, MaxPlayers);
+	Encoder::UnMunge3(&server_info.map_crc, 4, (-1 - server_info.index) & 0xFF);
 
-	mIndex = (int32_t)msg.read<uint8_t>();
+	mServerInfo = server_info;
 
-	Encoder::UnMunge3(&mMapCrc, 4, (-1 - mIndex) & 0xFF);
-
-	msg.read<uint8_t>(); // UInt((coop.Value = 0) and (deathmatch.Value <> 0))
-
-	mGameDir = Common::BufferHelpers::ReadString(msg);
-	mHostname = Common::BufferHelpers::ReadString(msg);
-	mMap = Common::BufferHelpers::ReadString(msg);
-	auto mapList = Common::BufferHelpers::ReadString(msg);
-
-	msg.seek(1);
-
-	/*if not (Protocol in [46..48]) then
-	begin
-		FinalizeConnection('Server is using unsupported protocol version: ' + Protocol.ToString);
-		Exit;
-	end;
-	*/
-
-	//...InitializeGameEngine;
-	//Delta.Initialize;
-	//Engine.Execute('sendres');
-
-	// onGameInitialize(); // TODO: was uncommented
+	Utils::dlog("protocol: {}, spawn_count: {}, map_crc: {}, max_players: {}, index: {}, deathmatch: {}, game_dir: {}, "
+		"hostname: {}, map: {}, vac2: {}, map_list: {}", server_info.protocol, server_info.spawn_count, server_info.map_crc,
+		server_info.max_players, server_info.index, server_info.deathmatch, server_info.game_dir, server_info.hostname,
+		server_info.map, server_info.vac2, server_info.map_list);
 
 	sendCommand("sendres");
 }
@@ -1090,7 +1081,7 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 		if (msg.readBit())
 		{
 			msg.read(&resource.reserved, 32);
-			Encoder::UnMunge(&resource.reserved, 32, mSpawnCount);
+			Encoder::UnMunge(&resource.reserved, 32, mServerInfo.value().spawn_count);
 			resource.flags |= Protocol::RES_RESERVED;
 		}
 	}
@@ -1317,9 +1308,10 @@ void BaseClient::writeRegularMessages(BitBuffer& msg)
 		else
 			LOG("confirmation of resources isn't required");
 
-		int crc = mMapCrc;
-		Encoder::Munge2(&crc, 4, (-1 - mSpawnCount) & 0xFF);
-		sendCommand(fmt::format("spawn {} {}", mSpawnCount, crc));
+		auto crc = mServerInfo.value().map_crc;
+		auto spawn_count = mServerInfo.value().spawn_count;
+		Encoder::Munge2(&crc, 4, (-1 - spawn_count) & 0xFF);
+		sendCommand(fmt::format("spawn {} {}", spawn_count, crc));
 
 		mChannel->fragmentateReliableBuffer(128, false);
 	}
@@ -1434,8 +1426,11 @@ void BaseClient::onConnect(CON_ARGS)
 
 void BaseClient::onDisconnect(CON_ARGS)
 {
-	sendCommand("dropclient");
-	mChannel->transmit();
+	if (mChannel)
+	{
+		sendCommand("dropclient");
+		mChannel->transmit();
+	}
 	disconnect("client sent drop");
 }
 
@@ -1474,6 +1469,7 @@ void BaseClient::onReconnect(CON_ARGS)
 	}
 	mEntities.clear();
 	mState = State::Connected;
+	mServerInfo.reset();
 	sendCommand("new");
 }
 
@@ -1527,7 +1523,9 @@ void BaseClient::verifyResources()
 
 bool BaseClient::isResourceRequired(const Protocol::Resource& resource)
 {
-	if (Platform::Asset::Exists(mGameDir + '/' + resource.name))
+	auto game_dir = mServerInfo.value().game_dir;
+
+	if (Platform::Asset::Exists(game_dir + '/' + resource.name))
 		return false;
 
 	if (Platform::Asset::Exists("valve/" + resource.name))
@@ -1551,7 +1549,8 @@ bool BaseClient::isResourceRequired(const Protocol::Resource& resource)
 
 int BaseClient::getResourceHash(const Protocol::Resource& resource)
 {
-	auto asset = Platform::Asset(mGameDir + '/' + resource.name);
+	auto game_dir = mServerInfo.value().game_dir;
+	auto asset = Platform::Asset(game_dir + '/' + resource.name);
 
 	MD5 md5;
 
@@ -1606,7 +1605,7 @@ void BaseClient::connect(const Network::Address& address)
 {
 	if (mState != State::Disconnected)
 	{
-		LOG("cannot retry, already connected");
+		LOG("cannot connect, already connected");
 		return;
 	}
 
@@ -1645,6 +1644,7 @@ void BaseClient::disconnect(const std::string& reason)
 	mExtraBaselines.clear();
 	mSignonNum = 0;
 	mDeltaSequence = 0;
+	mServerInfo.reset();
 
 	LOG("disconnected, reason: \"" + reason + "\"");
 
@@ -1654,7 +1654,8 @@ void BaseClient::disconnect(const std::string& reason)
 
 bool BaseClient::isPlayerIndex(int value) const
 {
-	return value >= 1 && value <= mMaxPlayers;
+	auto max_players = mServerInfo.value().max_players;
+	return value >= 1 && value <= max_players;
 }
 
 void BaseClient::addUserInfo(const std::string& name, const std::string& description,
