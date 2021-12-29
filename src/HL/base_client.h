@@ -14,7 +14,8 @@
 
 namespace HL
 {
-	class BaseClient : public Networking
+	class BaseClient : public Networking,
+		public Common::FrameSystem::Frameable
 	{
 	public:
 		enum class State
@@ -33,6 +34,9 @@ namespace HL
 	public:
 		BaseClient(bool hltv = false);
 		~BaseClient();
+
+	public:
+		void onFrame() override;
 	
 #pragma region read
 	protected:
@@ -242,6 +246,12 @@ namespace HL
 		void connect(const Network::Address& address);
 		void disconnect(const std::string& reason);
 			
+	private:
+		void initializeConnection();
+
+	private:
+		std::optional<Clock::TimePoint> mInitializeConnectionTime;
+
 	public:
 		bool isPlayerIndex(int value) const;
 
@@ -299,5 +309,8 @@ namespace HL
 		bool mDlogsEvents = true;
 		bool mDlogsGmsg = true;
 		bool mDlogsTempEnts = true;
+
+	private:
+		float mTimeout = 30.0f;
 	};
 }

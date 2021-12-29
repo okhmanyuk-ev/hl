@@ -29,6 +29,7 @@ BaseClient::BaseClient(bool hltv) : Networking(),
 	CONSOLE->registerCVar("dlogs_events", { "bool" }, CVAR_GETTER_BOOL(mDlogsEvents), CVAR_SETTER_BOOL(mDlogsEvents));
 	CONSOLE->registerCVar("dlogs_gmsg", { "bool" }, CVAR_GETTER_BOOL(mDlogsGmsg), CVAR_SETTER_BOOL(mDlogsGmsg));
 	CONSOLE->registerCVar("dlogs_temp_ents", { "bool" }, CVAR_GETTER_BOOL(mDlogsTempEnts), CVAR_SETTER_BOOL(mDlogsTempEnts));
+	CONSOLE->registerCVar("cl_timeout", { "seconds" }, CVAR_GETTER_FLOAT(mTimeout), CVAR_SETTER_FLOAT(mTimeout));
 
 	CONSOLE->registerCommand("connect", "connect to the server", { "address" }, CMD_METHOD(onConnect));
 	CONSOLE->registerCommand("disconnect", "disconnect from server", CMD_METHOD(onDisconnect));
@@ -90,6 +91,34 @@ BaseClient::BaseClient(bool hltv) : Networking(),
 BaseClient::~BaseClient()
 {
 	//
+}
+
+void BaseClient::onFrame()
+{
+	if (mState == State::Challenging)
+	{
+		auto prev_time = mInitializeConnectionTime.value();
+		auto now = Clock::Now();
+
+		if (now - prev_time >= Clock::FromSeconds(2.0f))
+		{
+			initializeConnection();
+			mInitializeConnectionTime = now;
+		}
+	}
+	if (mState >= State::Connecting)
+	{
+		auto prev_time = mInitializeConnectionTime.value();
+		auto now = Clock::Now();
+
+		if (mChannel.has_value())
+			prev_time = mChannel.value().getIncomingTime();
+
+		if (now - prev_time >= Clock::FromSeconds(mTimeout))
+		{
+			disconnect("timed out");
+		}
+	}
 }
 
 #pragma region read
@@ -1714,17 +1743,9 @@ void BaseClient::connect(const Network::Address& address)
 	}
 
 	mServerAdr = address;
-
-	Network::Packet packet;
-	packet.adr = address;
-
-	Common::BufferHelpers::WriteString(packet.buf, "getchallenge steam");
-
-	sendConnectionlessPacket(packet);
-
-	LOG("initializing connection to " + address.toString());
-
 	mState = State::Challenging;
+	initializeConnection();
+	mInitializeConnectionTime = Clock::Now();
 }
 
 void BaseClient::disconnect(const std::string& reason)
@@ -1749,11 +1770,22 @@ void BaseClient::disconnect(const std::string& reason)
 	mSignonNum = 0;
 	mDeltaSequence = 0;
 	mServerInfo.reset();
+	mInitializeConnectionTime.reset();
 
 	LOG("disconnected, reason: \"" + reason + "\"");
 
 	if (mDisconnectCallback)
 		mDisconnectCallback(reason);
+}
+
+void BaseClient::initializeConnection()
+{
+	assert(mState == State::Challenging);
+	Network::Packet packet;
+	packet.adr = mServerAdr.value();
+	Common::BufferHelpers::WriteString(packet.buf, "getchallenge steam");
+	sendConnectionlessPacket(packet);
+	LOG("initializing connection to " + mServerAdr.value().toString());
 }
 
 bool BaseClient::isPlayerIndex(int value) const
