@@ -332,7 +332,7 @@ namespace HL::Protocol
 
 	struct ClientData
 	{
-		float			origin[3];
+		glm::vec3 origin;
 		float			velocity[3];
 
 		int					viewmodel;
@@ -507,7 +507,7 @@ namespace HL::Protocol
 	{
 		short	lerp_msec;		// Interpolation time on client
 		uint8_t	msec;			// Duration in ms of command
-		float	viewangles[3];	// Command view angles.
+		glm::vec3 viewangles;	// Command view angles.
 
 								// intended velocities
 

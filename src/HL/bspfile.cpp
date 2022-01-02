@@ -348,7 +348,7 @@ void BSPFile::makeHull0()
 	}
 }
 
-trace_t BSPFile::traceLine(glm::vec3 start, glm::vec3 end)
+trace_t BSPFile::traceLine(glm::vec3 start, glm::vec3 end) const
 {
 	trace_t result;
 	
@@ -386,7 +386,7 @@ trace_t BSPFile::traceLine(glm::vec3 start, glm::vec3 end)
 	return result;
 }
 
-bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace)
+bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace) const
 {
 	const float Epsilon = 0.03125f;
 	
@@ -487,7 +487,7 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 	return true;
 }
 
-int BSPFile::hullPointContents(const hull_t& hull, int num, const glm::vec3& point)
+int BSPFile::hullPointContents(const hull_t& hull, int num, const glm::vec3& point) const
 {
 	while (num >= 0)
 	{

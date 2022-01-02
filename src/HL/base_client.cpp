@@ -657,10 +657,7 @@ void BaseClient::readRegularServerInfo(BitBuffer& msg)
 	server_info.protocol = msg.read<int32_t>();
 	server_info.spawn_count = msg.read<int32_t>();
 	server_info.map_crc = msg.read<int32_t>();
-
-	uint8_t crc[16];
-	msg.read(&crc, 16);
-
+	server_info.crc = Common::BufferHelpers::ReadBytesToString(msg, 16);
 	server_info.max_players = (int32_t)msg.read<uint8_t>();
 	server_info.index = (int32_t)msg.read<uint8_t>();
 	server_info.deathmatch = msg.read<uint8_t>() > 0;
@@ -679,7 +676,7 @@ void BaseClient::readRegularServerInfo(BitBuffer& msg)
 		server_info.max_players, server_info.index, server_info.deathmatch, server_info.game_dir, server_info.hostname,
 		server_info.map, server_info.vac2, server_info.map_list);
 
-	sendCommand("sendres");
+	initializeGame();
 }
 
 void BaseClient::readRegularLightStyle(BitBuffer& msg)
@@ -1801,4 +1798,13 @@ void BaseClient::addUserInfo(const std::string& name, const std::string& descrip
 		getter, setter);
 
 	mUserInfos.insert({ name, getter });
+}
+
+void BaseClient::initializeGame()
+{
+	// first time when we know what game is it (cstrike, dod, valve, tfc, etc..)
+	// also this is first time when we know what map is 
+	// this method calls right after SVC_SERVERINFO received
+
+	sendCommand("sendres");
 }

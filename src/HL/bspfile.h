@@ -260,9 +260,9 @@ public:
 
 	void makeHull0();
 
-	trace_t traceLine(glm::vec3 start, glm::vec3 end);
-	bool recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace);
-	int hullPointContents(const hull_t& hull, int num, const glm::vec3& point);
+	trace_t traceLine(glm::vec3 start, glm::vec3 end) const;
+	bool recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace) const;
+	int hullPointContents(const hull_t& hull, int num, const glm::vec3& point) const;
 
 private:
 	std::vector<dvertex_t> m_Vertices;

@@ -116,6 +116,7 @@ namespace HL
 			int32_t protocol = 0;
 			int32_t spawn_count = 0;
 			int32_t map_crc = 0;
+			std::string crc;
 			int32_t max_players = 0;
 			int32_t index = 0;
 			bool deathmatch = false;
@@ -312,5 +313,8 @@ namespace HL
 
 	private:
 		float mTimeout = 30.0f;
+
+	protected:
+		virtual void initializeGame();
 	};
 }
