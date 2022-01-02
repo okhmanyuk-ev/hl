@@ -1088,9 +1088,15 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			else if (msg.readBit())
 			{
 				auto base_index = msg.readBits(6);
-				assert(mBaselines.count(base_index) > 0);
-				LOGF("using baseline {} for entity {}", base_index, index);
-				entity = mBaselines[base_index];
+				if (mBaselines.count(base_index) > 0)
+				{
+					LOGF("using baseline {} for entity {}", base_index, index);
+					entity = mBaselines[base_index];
+				}
+				else
+				{
+					LOGCF("want use baseline {} for entity {}, but baseline not found", Console::Color::Red, base_index, index);
+				}
 			}
 
 			readDeltaEntity(index, entity, custom);
@@ -1805,6 +1811,9 @@ void BaseClient::initializeGame()
 	// first time when we know what game is it (cstrike, dod, valve, tfc, etc..)
 	// also this is first time when we know what map is 
 	// this method calls right after SVC_SERVERINFO received
+
+	if (mGameInitializedCallback)
+		mGameInitializedCallback();
 
 	sendCommand("sendres");
 }
