@@ -676,7 +676,7 @@ void BaseClient::readRegularServerInfo(BitBuffer& msg)
 		server_info.max_players, server_info.index, server_info.deathmatch, server_info.game_dir, server_info.hostname,
 		server_info.map, server_info.vac2, server_info.map_list);
 
-	initializeGame();
+	initializeGameEngine();
 }
 
 void BaseClient::readRegularLightStyle(BitBuffer& msg)
@@ -1706,16 +1706,7 @@ void BaseClient::signon(uint8_t num)
 	}
 	else if (mSignonNum == 2)
 	{
-		if (mHLTV)
-		{
-			sendCommand("spectate");
-		}
-		/*	sendCommand("specmode 3");
-			sendCommand("specmode 3");
-			sendCommand("unpause \n");
-			sendCommand("unpause \n");
-			sendCommand("unpause \n");
-			sendCommand("unpause \n");*/
+		initializeGame();
 	}
 }
 
@@ -1806,14 +1797,33 @@ void BaseClient::addUserInfo(const std::string& name, const std::string& descrip
 	mUserInfos.insert({ name, getter });
 }
 
+void BaseClient::initializeGameEngine()
+{
+	// - delta descriptions received
+	// - serverinfo received
+
+	sendCommand("sendres");
+}
+
 void BaseClient::initializeGame()
 {
-	// first time when we know what game is it (cstrike, dod, valve, tfc, etc..)
-	// also this is first time when we know what map is 
-	// this method calls right after SVC_SERVERINFO received
+	// - signon 2
+	// - starts receiving entities
+	// - can be spawned in world
+	// - vgui menus starts from here (such as joining team, joining class)
 
 	if (mGameInitializedCallback)
 		mGameInitializedCallback();
 
-	sendCommand("sendres");
+	if (mHLTV)
+	{
+		sendCommand("spectate");
+	}
+/*	sendCommand("specmode 3");
+	sendCommand("specmode 3");
+	sendCommand("unpause \n");
+	sendCommand("unpause \n");
+	sendCommand("unpause \n");
+	sendCommand("unpause \n");*/
+
 }

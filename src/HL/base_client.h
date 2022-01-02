@@ -324,6 +324,7 @@ namespace HL
 		GameInitializedCallback mGameInitializedCallback = nullptr;
 
 	protected:
+		virtual void initializeGameEngine();
 		virtual void initializeGame();
 	};
 }
