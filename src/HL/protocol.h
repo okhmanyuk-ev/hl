@@ -263,7 +263,7 @@ namespace HL::Protocol
 		// Render information
 		int rendermode;
 		int renderamt;
-		uint8_t rendercolor[3];
+		glm::u8vec3 rendercolor;
 		int renderfx;
 
 		int movetype;

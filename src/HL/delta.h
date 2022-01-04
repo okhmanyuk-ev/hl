@@ -49,11 +49,9 @@ namespace HL
 
 		using Table = std::vector<Field>;
 
-		using ReadField =	std::variant<int64_t, float, std::string>;
-		using ReadFields = std::unordered_map<std::string, ReadField>;
-
-		using WriteField =  std::variant<int64_t, float, std::string>;
-		using WriteFields = std::map<int, WriteField>;
+		using VariantField = std::variant<int64_t, float, std::string>;
+		using ReadFields = std::unordered_map<std::string, VariantField>;
+		using WriteFields = std::map<int, VariantField>;
 
 	public:
 		void clear();

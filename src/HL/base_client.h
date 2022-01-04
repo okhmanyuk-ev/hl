@@ -27,10 +27,6 @@ namespace HL
 			Connected
 		};
 
-		using ThinkCallback = std::function<void(Protocol::UserCmd&)>;
-		using DisconnectCallback = std::function<void(const std::string& reason)>;
-		using IsResourceRequiredCallback = std::function<bool(const Protocol::Resource& resource)>;
-
 	public:
 		BaseClient(bool hltv = false);
 		~BaseClient();
@@ -106,14 +102,6 @@ namespace HL
 		void writeRegularDelta(BitBuffer& msg);
 		void writeRegularFileConsistency(BitBuffer& msg);
 
-	public:
-		const auto& getServerInfo() const { return mServerInfo; }
-		const auto& getMoveVars() const { return mMoveVars; }
-
-	private:
-		std::optional<Protocol::ServerInfo> mServerInfo;
-		std::optional<Protocol::MoveVars> mMoveVars;
-	
 	private:
 		void onConnect(CON_ARGS);
 		void onDisconnect(CON_ARGS);
@@ -122,23 +110,17 @@ namespace HL
 		void onFullServerInfo(CON_ARGS);
 		void onReconnect(CON_ARGS);
 
-	//protected:
-	//	virtual std::vector<std::pair<std::string, std::string>> getProtInfo() = 0;
-
-	//protected:
-	//	virtual std::vector<uint8_t> generateCertificate() { return { }; } // TODO: add setCertificate(), add mCertificate, add getCertificate()
-
 	public:
 		auto getState() const { return mState; }
-	//	auto& getUserInfo() { return mUserInfo; }
 		const auto& getEntities() const { return mEntities; }
 		const auto& getBaselines() const { return mBaselines; }
 		const auto& getClientData() const { return mClientData; }
 		const auto& getPlayerUserInfos() const { return mPlayerUserInfos; }
-
 		const auto& getChannel() const { return mChannel; }
-
 		const auto& getResources() const { return mResources; }
+		const auto& getGameMod() const { return mGameMod; }
+		const auto& getServerInfo() const { return mServerInfo; }
+		const auto& getMoveVars() const { return mMoveVars; }
 
 		const auto& getProtInfo() const { return mProtInfo; }
 		void setProtInfo(const std::map<std::string, std::string>& value) { mProtInfo = value; }
@@ -146,96 +128,75 @@ namespace HL
 		const auto& getCertificate() const { return mCertificate; }
 		void setCertificate(const std::vector<uint8_t>& value) { mCertificate = value; }
 
-		const auto& getGameMod() const { return mGameMod; }
-
 	private:
 		std::optional<Network::Address> mServerAdr; 
 		State mState = State::Disconnected;
 		std::map<std::string, std::string> mProtInfo;
-		//std::vector<std::pair<std::string, std::string>> mUserInfo; // setinfo
 		std::vector<uint8_t> mCertificate = { };
-
 		std::optional<Channel> mChannel;
-
-
 		std::list<std::string> mDownloadQueue;
 		bool mResourcesVerifying = false;
 		bool mResourcesVerified = false;
 		bool mConfirmationRequired = false;
-
-
-
-
-
 		Delta mDelta;
 		std::map<uint8_t, Protocol::GameMessage> mGameMessages;
 		std::shared_ptr<GameMod> mGameMod;
-
-	public:
-		void setResourceRequiredCallback(IsResourceRequiredCallback callback) { mIsResourceRequiredCallback = callback; }
-
-	private:
-		IsResourceRequiredCallback mIsResourceRequiredCallback = nullptr;
-
-	private:
 		float mTime = 0.0f; // svc_time
-
-
-
-
 		Protocol::ClientData mClientData = {}; // svc_clientdata
 		std::vector<std::string> m_LightStyles; // svc_lightstyles
 		std::vector<Protocol::WeaponData> m_WeaponData; // svc_clientdata
-
-
-
 		std::vector<Protocol::Resource> mResources;
-
 		std::map<int, Protocol::Entity*> mEntities; // TODO: shared ptr
 		std::map<int, Protocol::Entity> mDeltaEntities;
 		std::map<int, Protocol::Entity> mBaselines;
 		std::map<int, Protocol::Entity> mExtraBaselines;
-
 		std::map<int, std::string> mPlayerUserInfos;
-
 		bool mHLTV = false;
-		
+		std::optional<Protocol::ServerInfo> mServerInfo;
+		std::optional<Protocol::MoveVars> mMoveVars;
+		uint8_t mSignonNum = 0;
+		uint8_t mDeltaSequence;
+		std::optional<Clock::TimePoint> mInitializeConnectionTime;
+		float mTimeout = 30.0f;
+
+	public:
+		using ThinkCallback = std::function<void(Protocol::UserCmd&)>;
+		using DisconnectCallback = std::function<void(const std::string& reason)>;
+		using IsResourceRequiredCallback = std::function<bool(const Protocol::Resource& resource)>;
+		using GameEngineInitializedCallback = std::function<void()>;
+		using GameInitializedCallback = std::function<void()>;
 
 	public:
 		void setThinkCallback(ThinkCallback value) { mThinkCallback = value; }
 		void setDisconnectCallback(DisconnectCallback value) { mDisconnectCallback = value; }
+		void setResourceRequiredCallback(IsResourceRequiredCallback callback) { mIsResourceRequiredCallback = callback; }
+		void setGameEngineInitializedCallback(GameEngineInitializedCallback value) { mGameEngineInitializedCallback = value; }
+		void setGameInitializedCallback(GameInitializedCallback value) { mGameInitializedCallback = value; }
 
 	private:
 		ThinkCallback mThinkCallback = nullptr;
 		DisconnectCallback mDisconnectCallback = nullptr;
+		IsResourceRequiredCallback mIsResourceRequiredCallback = nullptr;
+		GameEngineInitializedCallback mGameEngineInitializedCallback = nullptr;
+		GameInitializedCallback mGameInitializedCallback = nullptr;
 
-		uint8_t mSignonNum = 0;
-
-
-
-		uint8_t mDeltaSequence;
-
-
-
+	private:
 		void verifyResources();
 
 		virtual bool isResourceRequired(const Protocol::Resource& resource);
 		virtual int getResourceHash(const Protocol::Resource& resource);
 
 		void signon(uint8_t num);
+		void initializeConnection();
+
+	protected:
+		virtual void initializeGameEngine();
+		virtual void initializeGame();
 
 	public:
 		void sendCommand(const std::string& command);
 		void connect(const Network::Address& address);
 		void disconnect(const std::string& reason);
-			
-	private:
-		void initializeConnection();
-
-	private:
-		std::optional<Clock::TimePoint> mInitializeConnectionTime;
-
-	public:
 		bool isPlayerIndex(int value) const;
 
 	private: // userinfos
@@ -292,24 +253,5 @@ namespace HL
 		bool mDlogsEvents = true;
 		bool mDlogsGmsg = true;
 		bool mDlogsTempEnts = true;
-
-	private:
-		float mTimeout = 30.0f;
-
-	public:
-		using GameEngineInitializedCallback = std::function<void()>;
-		using GameInitializedCallback = std::function<void()>;
-
-	public:
-		void setGameEngineInitializedCallback(GameEngineInitializedCallback value) { mGameEngineInitializedCallback = value; }
-		void setGameInitializedCallback(GameInitializedCallback value) { mGameInitializedCallback = value; }
-
-	private:
-		GameEngineInitializedCallback mGameEngineInitializedCallback = nullptr;
-		GameInitializedCallback mGameInitializedCallback = nullptr;
-
-	protected:
-		virtual void initializeGameEngine();
-		virtual void initializeGame();
 	};
 }

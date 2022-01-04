@@ -12,8 +12,8 @@ namespace
 	bool ReadResultValue(const Delta::ReadFields& fields, const std::string& name, U& value) {
 		if (fields.count(name) == 0)
 			return false;
-
-		value = std::get<T>(fields.at(name));
+		
+		value = static_cast<U>(std::get<T>(fields.at(name)));
 		return true;
 	};
 }
@@ -62,7 +62,7 @@ Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 		bool sign = field.type & DT_SIGNED;
 		int type = field.type & ~DT_SIGNED;
 
-		ReadField resultField;
+		VariantField resultField;
 
 		switch (type)
 		{
@@ -157,9 +157,9 @@ void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 			assert(normal.pscale == 1.0f);
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, std::get<int64_t>(field), normal.bits);
+				Common::BufferHelpers::WriteSBits(msg, static_cast<int32_t>(std::get<int64_t>(field)), normal.bits);
 			else
-				msg.writeBits(std::get<int64_t>(field), normal.bits);
+				msg.writeBits(static_cast<uint32_t>(std::get<int64_t>(field)), normal.bits);
 		}
 		break;
 
@@ -460,9 +460,9 @@ void Delta::read(BitBuffer& msg, Protocol::Entity& entity, const std::string& ta
 
 	READ_INT(rendermode);
 	READ_INT(renderamt);
-	READ_INT2(rendercolor.r, rendercolor[0]);
-	READ_INT2(rendercolor.g, rendercolor[1]);
-	READ_INT2(rendercolor.b, rendercolor[2]);
+	READ_INT(rendercolor.r);
+	READ_INT(rendercolor.g);
+	READ_INT(rendercolor.b);
 	READ_INT(renderfx);
 
 	READ_INT(movetype);
