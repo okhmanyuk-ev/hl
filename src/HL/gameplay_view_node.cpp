@@ -262,9 +262,13 @@ void GameplayViewNode::draw()
 
 	for (const auto& [index, entity] : mClient->getEntities())
 	{
+		bool is_me = index == mClient->getServerInfo().value().index + 1;
 		bool is_player = mClient->isPlayerIndex(index);
 
 		auto pos = worldToScreen(entity->origin);
+
+		if (is_me)
+			pos = worldToScreen(mClient->getClientData().origin);
 
 		auto rotation = glm::radians(-entity->angles[1]);
 
@@ -318,6 +322,10 @@ void GameplayViewNode::draw()
 				name->setPosition({ 0.0f, -18.0f });
 				name->setFontSize(10.0f);
 				auto name_str = HL::Utils::GetInfoValue(userinfos.at(index - 1), "name");
+
+				if (is_me)
+					name_str += " (You)";
+
 				name->setText(name_str);
 				IMSCENE->dontKill(name);
 			}
@@ -373,6 +381,16 @@ glm::vec2 GameplayViewNode::worldToScreen(const glm::vec3& value) const
 	result.y -= o.x * size.y * (1024.0f / 768.0f);
 
 	return result;
+}
+
+glm::vec3 GameplayViewNode::screenToWorld(const glm::vec2& value) const
+{
+	//auto o = (value - mOverviewInfo->getOrigin()) / 8192.0f * mOverviewInfo->getZoom();
+
+//	auto result = value;
+
+	//result.y += o.y
+	return { value, 0.0f };
 }
 
 std::optional<HL::Protocol::Resource> GameplayViewNode::findModel(int model_index) const

@@ -36,6 +36,9 @@ namespace HL
 		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
 
+	public:
+		glm::vec3 screenToWorld(const glm::vec2& value) const;
+
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
 		std::optional<OverviewInfo> mOverviewInfo;
