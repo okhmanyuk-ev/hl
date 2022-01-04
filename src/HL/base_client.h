@@ -11,6 +11,7 @@
 #include "delta.h"
 #include "encoder.h"
 #include <cstdint>
+#include "gamemod.h"
 
 namespace HL
 {
@@ -28,7 +29,6 @@ namespace HL
 
 		using ThinkCallback = std::function<void(Protocol::UserCmd&)>;
 		using DisconnectCallback = std::function<void(const std::string& reason)>;
-		using ReadGameMessageCallback = std::function<void(const std::string& name, void* memory, size_t size)>;
 		using IsResourceRequiredCallback = std::function<bool(const Protocol::Resource& resource)>;
 
 	public:
@@ -38,7 +38,6 @@ namespace HL
 	public:
 		void onFrame() override;
 	
-#pragma region read
 	protected:
 		void readConnectionlessPacket(Network::Packet& packet) override;
 		void readRegularPacket(Network::Packet& packet) override;
@@ -99,39 +98,21 @@ namespace HL
 		void readTempEntityGlowSprite(BitBuffer& msg);
 		void readTempEntitySprite(BitBuffer& msg);
 		void readTempEntityBloodSprite(BitBuffer& msg);
-#pragma endregion
 
-#pragma region write
 	private:
 		void writeRegularMessages(BitBuffer& msg);
 
 		void writeRegularMove(BitBuffer& msg);
 		void writeRegularDelta(BitBuffer& msg);
 		void writeRegularFileConsistency(BitBuffer& msg);
-#pragma endregion
-
-	public:
-		struct ServerInfo
-		{
-			int32_t protocol = 0;
-			int32_t spawn_count = 0;
-			int32_t map_crc = 0;
-			std::string crc;
-			int32_t max_players = 0;
-			int32_t index = 0;
-			bool deathmatch = false;
-			std::string hostname;
-			std::string map;
-			std::string game_dir;
-			std::string map_list;
-			bool vac2 = false;
-		};
 
 	public:
 		const auto& getServerInfo() const { return mServerInfo; }
+		const auto& getMoveVars() const { return mMoveVars; }
 
 	private:
-		std::optional<ServerInfo> mServerInfo;
+		std::optional<Protocol::ServerInfo> mServerInfo;
+		std::optional<Protocol::MoveVars> mMoveVars;
 	
 	private:
 		void onConnect(CON_ARGS);
@@ -165,6 +146,8 @@ namespace HL
 		const auto& getCertificate() const { return mCertificate; }
 		void setCertificate(const std::vector<uint8_t>& value) { mCertificate = value; }
 
+		const auto& getGameMod() const { return mGameMod; }
+
 	private:
 		std::optional<Network::Address> mServerAdr; 
 		State mState = State::Disconnected;
@@ -186,13 +169,12 @@ namespace HL
 
 		Delta mDelta;
 		std::map<uint8_t, Protocol::GameMessage> mGameMessages;
+		std::shared_ptr<GameMod> mGameMod;
 
 	public:
-		void setReadGameMessageCallback(ReadGameMessageCallback callback) { mReadGameMessageCallback = callback; }
 		void setResourceRequiredCallback(IsResourceRequiredCallback callback) { mIsResourceRequiredCallback = callback; }
 
 	private:
-		ReadGameMessageCallback mReadGameMessageCallback = nullptr;
 		IsResourceRequiredCallback mIsResourceRequiredCallback = nullptr;
 
 	private:

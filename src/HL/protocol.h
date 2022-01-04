@@ -525,4 +525,46 @@ namespace HL::Protocol
 		int		impact_index;
 		float	impact_position[3];
 	};
+
+	struct ServerInfo
+	{
+		int32_t protocol = 0;
+		int32_t spawn_count = 0;
+		int32_t map_crc = 0;
+		std::string crc;
+		int32_t max_players = 0;
+		int32_t index = 0;
+		bool deathmatch = false;
+		std::string hostname;
+		std::string map;
+		std::string game_dir;
+		std::string map_list;
+		bool vac2 = false;
+	};
+
+	struct MoveVars
+	{
+		float gravity = 0.0f;
+		float stop_speed = 0.0f;
+		float max_speed = 0.0f;
+		float spectator_max_speed = 0.0f;
+		float accelerate = 0.0f;
+		float air_accelerate = 0.0f;
+		float water_accelerate = 0.0f;
+		float friction = 0.0f;
+		float edge_friction = 0.0f;
+		float water_friction = 0.0f;
+		float ent_gravity = 0.0f;
+		float bounce = 0.0f;
+		float step_size = 0.0f;
+		float max_velocity = 0.0f;
+		float z_max = 0.0f;
+		float wave_height = 0.0f;
+		uint8_t foot_steps = 0;
+		float roll_angle = 0.0f;
+		float roll_speed = 0.0f;
+		glm::vec3 sky_color = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 sky_vec = { 0.0f, 0.0f, 0.0f };
+		std::string sky_name;
+	};
 }

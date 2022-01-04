@@ -500,9 +500,9 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 	if (mDlogsGmsg)
 		Utils::dlog("{}", gmsg.name);
 
-	if (mReadGameMessageCallback)
+	if (mGameMod)
 	{
-		mReadGameMessageCallback(gmsg.name, buf.getMemory(), buf.getSize());
+		mGameMod->readMessage(gmsg.name, buf);
 	}
 }
 
@@ -652,7 +652,7 @@ void BaseClient::readRegularAngle(BitBuffer& msg)
 
 void BaseClient::readRegularServerInfo(BitBuffer& msg)
 {
-	ServerInfo server_info;
+	Protocol::ServerInfo server_info;
 
 	server_info.protocol = msg.read<int32_t>();
 	server_info.spawn_count = msg.read<int32_t>();
@@ -1170,32 +1170,36 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 
 void BaseClient::readRegularMoveVars(BitBuffer& msg)
 {
-	float gravity = msg.read<float>();
-	float stopSpeed = msg.read<float>();
-	float maxSpeed = msg.read<float>();
-	float spectatorMaxSpeed = msg.read<float>();
-	float accelerate = msg.read<float>();
-	float airAccelerate = msg.read<float>();
-	float waterAccelerate = msg.read<float>();
-	float friction = msg.read<float>();
-	float edgeFriction = msg.read<float>();
-	float waterFriction = msg.read<float>();
-	float entGravity = msg.read<float>();
-	float bounce = msg.read<float>();
-	float stepSize = msg.read<float>();
-	float maxVelocity = msg.read<float>();
-	float zMax = msg.read<float>();
-	float waveHeight = msg.read<float>();
-	uint8_t footSteps = msg.read<uint8_t>();
-	float rollAngle = msg.read<float>();
-	float rollSpeed = msg.read<float>();
-	float skyColorR = msg.read<float>();
-	float skyColorG = msg.read<float>();
-	float skyColorB = msg.read<float>();
-	float skyVecX = msg.read<float>();
-	float skyVecY = msg.read<float>();
-	float skyVecZ = msg.read<float>();
-	std::string skyName = Common::BufferHelpers::ReadString(msg);
+	auto movevars = Protocol::MoveVars{};
+
+	movevars.gravity = msg.read<float>();
+	movevars.stop_speed = msg.read<float>();
+	movevars.max_speed = msg.read<float>();
+	movevars.spectator_max_speed = msg.read<float>();
+	movevars.accelerate = msg.read<float>();
+	movevars.air_accelerate = msg.read<float>();
+	movevars.water_accelerate = msg.read<float>();
+	movevars.friction = msg.read<float>();
+	movevars.edge_friction = msg.read<float>();
+	movevars.water_friction = msg.read<float>();
+	movevars.ent_gravity = msg.read<float>();
+	movevars.bounce = msg.read<float>();
+	movevars.step_size = msg.read<float>();
+	movevars.max_velocity = msg.read<float>();
+	movevars.z_max = msg.read<float>();
+	movevars.wave_height = msg.read<float>();
+	movevars.foot_steps = msg.read<uint8_t>();
+	movevars.roll_angle = msg.read<float>();
+	movevars.roll_speed = msg.read<float>();
+	movevars.sky_color.r = msg.read<float>();
+	movevars.sky_color.g = msg.read<float>();
+	movevars.sky_color.b = msg.read<float>();
+	movevars.sky_vec.x = msg.read<float>();
+	movevars.sky_vec.y = msg.read<float>();
+	movevars.sky_vec.z = msg.read<float>();
+	movevars.sky_name = Common::BufferHelpers::ReadString(msg);
+
+	mMoveVars = movevars;
 }
 
 void BaseClient::readRegularResourceRequest(BitBuffer& msg)
@@ -1764,6 +1768,8 @@ void BaseClient::disconnect(const std::string& reason)
 	mSignonNum = 0;
 	mDeltaSequence = 0;
 	mServerInfo.reset();
+	mMoveVars.reset();
+	mGameMod.reset();
 	mInitializeConnectionTime.reset();
 
 	LOG("disconnected, reason: \"" + reason + "\"");
@@ -1806,6 +1812,11 @@ void BaseClient::initializeGameEngine()
 		mGameEngineInitializedCallback();
 
 	sendCommand("sendres");
+
+	auto gamedir = mServerInfo.value().game_dir;
+
+	if (gamedir == "cstrike" || gamedir == "czero")
+		mGameMod = std::make_shared<CounterStrike>();
 }
 
 void BaseClient::initializeGame()
@@ -1818,10 +1829,6 @@ void BaseClient::initializeGame()
 	if (mGameInitializedCallback)
 		mGameInitializedCallback();
 
-	if (mHLTV)
-	{
-		sendCommand("spectate");
-	}
 /*	sendCommand("specmode 3");
 	sendCommand("specmode 3");
 	sendCommand("unpause \n");

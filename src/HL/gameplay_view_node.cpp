@@ -291,19 +291,7 @@ void GameplayViewNode::draw()
 		}
 		IMSCENE->setupPreKillAction(holder, Actions::Collection::ChangeScale(holder, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
-		auto team_color = Graphics::Color::LightGray;
-
-		/*const auto& team_info = mClient->getTeamInfo();
-	
-		if (team_info.contains(index))
-		{
-			auto team = team_info.at(index);
-
-			if (team == HL::HLTVClient::Team::TERRORIST)
-				team_color = Graphics::Color::Red;
-			else if (team == HL::HLTVClient::Team::CT)
-				team_color = Graphics::Color::Blue;
-		}*/
+		auto team_color = mClient->getGameMod()->getPlayerColor(index);
 
 		if (is_player)
 		{
