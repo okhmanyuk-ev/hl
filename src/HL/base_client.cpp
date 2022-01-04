@@ -1802,6 +1802,9 @@ void BaseClient::initializeGameEngine()
 	// - delta descriptions received
 	// - serverinfo received
 
+	if (mGameEngineInitializedCallback)
+		mGameEngineInitializedCallback();
+
 	sendCommand("sendres");
 }
 

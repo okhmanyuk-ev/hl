@@ -14,11 +14,13 @@ namespace HL
 		const auto& getOrigin() const { return mOrigin; }
 		auto getZoom() const { return mZoom; }
 		auto isRotated() const { return mRotated; }
+		const auto& getPath() const { return mPath; }
 
 	private:
 		float mZoom = 1.0f;
 		glm::vec3 mOrigin = { 0.0f, 0.0f, 0.0f };
 		bool mRotated = false;
+		std::string mPath;
 	};
 
 	class GameplayViewNode : public Scene::Node
@@ -36,6 +38,6 @@ namespace HL
 
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
-		std::shared_ptr<OverviewInfo> mOverviewInfo;
+		std::optional<OverviewInfo> mOverviewInfo;
 	};
 }

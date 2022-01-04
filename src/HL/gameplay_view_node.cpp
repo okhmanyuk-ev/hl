@@ -18,38 +18,57 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 	};
 
 	auto global = getDataInBraces("global");
-	auto tokens = Console::System::MakeTokensFromString(global);
+	auto global_tokens_v = Console::System::MakeTokensFromString(global);
+	std::list<std::string> global_tokens;
+	std::copy(global_tokens_v.begin(), global_tokens_v.end(), std::back_inserter(global_tokens));
 
-	int i = 0;
-
-	auto readNextToken = [&] {
-		auto result = tokens.at(i);
-		i++;
+	auto readNextToken = [](auto& tokens) {
+		auto result = tokens.front();
+		tokens.pop_front();
 		return result;
 	};
 
-	while (i < tokens.size())
+	while (!global_tokens.empty())
 	{
-		auto token = readNextToken();
+		auto token = readNextToken(global_tokens);
 
 		if (token == "ZOOM")
 		{
-			auto value = readNextToken();
+			auto value = readNextToken(global_tokens);
 			mZoom = std::stof(value);
 		}
 		else if (token == "ORIGIN")
 		{
-			auto x = readNextToken();
-			auto y = readNextToken();
-			auto z = readNextToken();
+			auto x = readNextToken(global_tokens);
+			auto y = readNextToken(global_tokens);
+			auto z = readNextToken(global_tokens);
 			mOrigin.x = std::stof(x);
 			mOrigin.y = std::stof(y);
 			mOrigin.z = std::stof(z);
 		}
 		else if (token == "ROTATED")
 		{
-			auto value = readNextToken();
+			auto value = readNextToken(global_tokens);
 			mRotated = value != "0";
+		}
+	}
+
+	auto layer = getDataInBraces("layer");
+	auto layer_tokens_v = Console::System::MakeTokensFromString(layer);
+	std::list<std::string> layer_tokens;
+	std::copy(layer_tokens_v.begin(), layer_tokens_v.end(), std::back_inserter(layer_tokens));
+
+	while (!layer_tokens.empty())
+	{
+		auto token = readNextToken(layer_tokens);
+
+		if (token == "IMAGE")
+		{
+			mPath = readNextToken(layer_tokens);
+		}
+		else if (token == "HEIGHT")
+		{
+			auto value = readNextToken(layer_tokens);
 		}
 	}
 }
@@ -57,12 +76,12 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	mClient(client)
 {
-	mClient->setGameInitializedCallback([this] {
+	mClient->setGameEngineInitializedCallback([this] {
 		auto info = mClient->getServerInfo().value();
 		std::filesystem::path map_path = info.map;
 		auto map_name = map_path.filename().replace_extension().string();
-		auto txt_path = fmt::format("cstrike/overviews/{}.txt", map_name);
-		mOverviewInfo = std::make_shared<OverviewInfo>();
+		auto txt_path = fmt::format("overviews/{}.txt", map_name);
+		mOverviewInfo = OverviewInfo();
 		if (Platform::Asset::Exists(txt_path))
 		{
 			mOverviewInfo->load(Platform::Asset::Asset(txt_path));
@@ -392,7 +411,7 @@ std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() cons
 
 	if (result.getTexture() == nullptr)
 	{
-		auto img_path = "cstrike/overviews/" + map + ".bmp";
+		auto img_path = mOverviewInfo->getPath();
 
 		if (Platform::Asset::Exists(img_path))
 		{

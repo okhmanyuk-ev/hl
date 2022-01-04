@@ -315,12 +315,15 @@ namespace HL
 		float mTimeout = 30.0f;
 
 	public:
+		using GameEngineInitializedCallback = std::function<void()>;
 		using GameInitializedCallback = std::function<void()>;
 
 	public:
+		void setGameEngineInitializedCallback(GameEngineInitializedCallback value) { mGameEngineInitializedCallback = value; }
 		void setGameInitializedCallback(GameInitializedCallback value) { mGameInitializedCallback = value; }
 
 	private:
+		GameEngineInitializedCallback mGameEngineInitializedCallback = nullptr;
 		GameInitializedCallback mGameInitializedCallback = nullptr;
 
 	protected:
