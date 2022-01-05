@@ -1818,6 +1818,13 @@ void BaseClient::initializeGameEngine()
 
 	if (gamedir == "cstrike" || gamedir == "czero")
 		mGameMod = std::make_shared<CounterStrike>();
+
+	if (mGameMod)
+	{
+		mGameMod->setSendCommandCallback([this](const auto& cmd) {
+			sendCommand(cmd);
+		});
+	}
 }
 
 void BaseClient::initializeGame()

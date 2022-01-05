@@ -272,6 +272,8 @@ void GameplayViewNode::draw()
 	
 	auto dTime = FRAME->getTimeDelta();
 
+	const float SlowFriction = 0.01f;
+
 	for (const auto& [index, entity] : mClient->getEntities())
 	{
 		bool is_me = index == mClient->getServerInfo().value().index + 1;
@@ -286,8 +288,6 @@ void GameplayViewNode::draw()
 
 		if (mOverviewInfo->isRotated())
 			rotation += glm::radians(90.0f);
-
-		const float SlowFriction = 0.01f;
 
 		auto model = findModel(entity->modelindex);
 		
@@ -372,6 +372,49 @@ void GameplayViewNode::draw()
 			name->setFontSize(8.0f);
 			name->setText(model->name);
 			IMSCENE->dontKill(name);
+		}
+	}
+
+	auto gamemod = mClient->getGameMod();
+
+	auto counterstrike = std::dynamic_pointer_cast<CounterStrike>(gamemod);
+
+	if (counterstrike)
+	{
+		const auto& serverinfo = mClient->getServerInfo().value();
+
+		for (int i = 1; i < serverinfo.max_players; i++)
+		{
+			if (mClient->getEntities().contains(i))
+				continue;
+
+			if (counterstrike->isPlayerDead(i))
+				continue;
+
+			auto radar = counterstrike->getPlayerRadarCoord(i);
+
+			if (!radar.has_value())
+				continue;
+
+			auto team_color = mClient->getGameMod()->getPlayerColor(i);
+			auto pos = worldToScreen(radar.value());
+
+			auto body = IMSCENE->attachTemporaryNode<Scene::Circle>(*bg, std::to_string(i));
+			body->setSize(8.0f);
+			body->setPivot(0.5f);
+			body->setColor(Common::Helpers::SmoothValueAssign(body->getColor(), team_color, dTime, SlowFriction));
+			body->setPosition(IMSCENE->nodeWasInitialized() ? pos : Common::Helpers::SmoothValueAssign(body->getPosition(), pos, dTime));
+
+			if (userinfos.count(i - 1) > 0)
+			{
+				auto name = IMSCENE->attachTemporaryNode<Scene::Label>(*body);
+				name->setPivot(0.5f);
+				name->setAnchor({ 0.5f, 0.0f });
+				name->setPosition({ 0.0f, -18.0f });
+				name->setFontSize(10.0f);
+				auto name_str = HL::Utils::GetInfoValue(userinfos.at(i - 1), "name");
+				name->setText(name_str);
+			}
 		}
 	}
 }

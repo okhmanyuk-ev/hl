@@ -22,19 +22,100 @@ void GameMod::addReadCallback(const std::string& name, ReadMessageCallback callb
 	mReadCallbacks.insert({ name, callback });
 }
 
+void GameMod::sendCommand(const std::string& cmd)
+{
+	mSendCommandCallback(cmd);
+}
+
 // CounterStrike
 
 CounterStrike::CounterStrike()
 {
-	addReadCallback("ReqState", [](auto& msg) {
-		//sendCommand("VModEnable 1");
+	/*
+	AddCallback("AmmoX", ReadAmmoX)
+	AddCallback("WeaponList", ReadWeaponList)*/
+	addReadCallback("ReqState", [this](auto& msg) {
+		sendCommand("VModEnable 1");
 	});
-
+    /*
+	AddCallback("SayText", ReadSayText)
+	AddCallback("MOTD", ReadMOTD)
+	*/
 	addReadCallback("TeamInfo", [this](auto& msg) {
 		auto player_id = msg.read<uint8_t>();
 		auto team = Common::BufferHelpers::ReadString(msg);
 		mTeamInfo[player_id] = magic_enum::enum_cast<Team>(team).value_or(Team::UNASSIGNED);
 	});
+	/*
+	AddCallback("ScoreInfo", ReadScoreInfo)
+	AddCallback("TextMsg", ReadTextMsg)
+	AddCallback("ServerName", ReadServerName)
+	AddCallback("Money", ReadMoney)
+	AddCallback("TeamScore", ReadTeamScore)
+	*/
+	addReadCallback("ScoreAttrib", [this](BitBuffer& msg) {
+		auto player_id = msg.read<uint8_t>();
+		auto status = msg.read<uint8_t>();
+		mScoreStatus[player_id] = status;
+	});
+	/*
+	AddCallback("StatusIcon", ReadStatusIcon)
+	AddCallback("StatusValue", ReadStatusValue)
+	AddCallback("FlashBat", ReadFlashBat)
+	AddCallback("CurWeapon", ReadCurWeapon)
+	AddCallback("Health", ReadHealth)
+	AddCallback("RoundTime", ReadRoundTime)
+	AddCallback("SetFOV", ReadSetFOV)
+	AddCallback("Location", ReadLocation)
+	AddCallback("WeapPickup", ReadWeapPickup)
+	AddCallback("AmmoPickup", ReadAmmoPickup)
+	AddCallback("ScreenFade", ReadScreenFade)
+	AddCallback("Damage", ReadDamage)
+	AddCallback("DeathMsg", ReadDeathMsg)
+	AddCallback("HostagePos", ReadHostagePos)
+	AddCallback("Battery", ReadBattery)
+	AddCallback("BarTime", ReadBarTime)
+	AddCallback("HudTextArgs", ReadHudTextArgs)
+	AddCallback("HideWeapon", ReadHideWeapon)
+	AddCallback("SendAudio", ReadSendAudio)
+	AddCallback("Geiger", ReadGeiger)
+	*/
+	addReadCallback("Radar", [this](BitBuffer& msg) {
+		auto player_id = msg.read<uint8_t>();
+		auto x = Common::BufferHelpers::ReadCoord(msg);
+		auto y = Common::BufferHelpers::ReadCoord(msg);
+		auto z = Common::BufferHelpers::ReadCoord(msg);
+		mRadar[player_id] = { x, y, z };
+	});
+	/*
+	AddCallback("ShowMenu", ReadShowMenu)
+	AddCallback("Train", ReadTrain)
+	AddCallback("ResetHUD", ReadResetHUD)
+	AddCallback("InitHUD", ReadInitHUD)
+	AddCallback("GameMode", ReadGameMode)
+	AddCallback("ViewMode", ReadViewMode)
+	AddCallback("ShadowIdx", ReadShadowIdx)
+	AddCallback("AllowSpec", ReadAllowSpec)
+	AddCallback("ItemStatus", ReadItemStatus)
+	AddCallback("ForceCam", ReadForceCam)
+	AddCallback("Crosshair", ReadCrosshair)
+	AddCallback("Spectator", ReadSpectator)
+	AddCallback("NVGToggle", ReadNVGToggle)
+	AddCallback("VGUIMenu", ReadVGUIMenu)
+	AddCallback("ADStop", ReadADStop)
+	AddCallback("BotVoice", ReadBotVoice)
+	AddCallback("Scenario", ReadScenario)
+	AddCallback("ClCorpse", ReadClCorpse)
+	AddCallback("Brass", ReadBrass)
+	AddCallback("BombDrop", ReadBombDrop)
+	AddCallback("BombPickup", ReadBombPickup)
+	AddCallback("ShowTimer", ReadShowTimer)
+	AddCallback("SpecHealth", ReadSpecHealth)
+	AddCallback("StatusText", ReadStatusText)
+	AddCallback("ReloadSound", ReadReloadSound)
+	AddCallback("Account", ReadAccount)
+	AddCallback("HealthInfo", ReadHealthInfo)
+	*/
 }
 
 glm::vec3 CounterStrike::getPlayerColor(int index) const
@@ -55,4 +136,20 @@ CounterStrike::Team CounterStrike::getPlayerTeam(int index) const
 		return Team::UNASSIGNED;
 
 	return mTeamInfo.at(index);
+}
+
+std::optional<glm::vec3> CounterStrike::getPlayerRadarCoord(int index) const
+{
+	if (!mRadar.contains(index))
+		return std::nullopt;
+
+	return mRadar.at(index);
+}
+
+bool CounterStrike::isPlayerDead(int index) const
+{
+	if (!mScoreStatus.contains(index))
+		return false;
+
+	return mScoreStatus.at(index) & SCORE_STATUS_DEAD;
 }
