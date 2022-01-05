@@ -21,7 +21,6 @@ namespace HL
 		BaseClient& mBaseClient;
 
 	private:
-		int mWantShowNet = 0;
 		int mWantShowEntities = 0;
 	};
 }

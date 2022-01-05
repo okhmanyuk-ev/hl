@@ -13,10 +13,6 @@ using namespace HL;
 HudViews::HudViews(BaseClient& baseClient) : 
 	mBaseClient(baseClient)
 {
-	CONSOLE->registerCVar("hud_show_net", "show net graph on screen", { "int" },
-		CVAR_GETTER_INT(mWantShowNet),
-		CVAR_SETTER(mWantShowNet = CON_ARG_INT(0)));
-		
 	CONSOLE->registerCVar("hud_show_ents", "show entities information on screen", { "int" },
 		CVAR_GETTER_INT(mWantShowEntities),
 		CVAR_SETTER(mWantShowEntities = CON_ARG_INT(0)));
@@ -24,19 +20,6 @@ HudViews::HudViews(BaseClient& baseClient) :
 
 void HudViews::onFrame()
 {
-	if (mWantShowNet > 0)
-	{
-		const auto& channel = mBaseClient.getChannel();
-		if (channel.has_value())
-		{
-			STATS_INDICATE_GROUP("netchan_seq", "incoming seq", channel->getIncomingSequence());
-			STATS_INDICATE_GROUP("netchan_seq", "outgoing seq", channel->getOutgoingSequence());
-			STATS_INDICATE_GROUP("netchan_rel", "incoming rel", channel->getIncomingReliable());
-			STATS_INDICATE_GROUP("netchan_rel", "outgoing rel", channel->getOutgoingReliable());
-			STATS_INDICATE_GROUP("netchan", "latency", Clock::ToMilliseconds(channel->getLatency()));
-		}
-	}
-
 	if (mWantShowEntities)
 	{
 		ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(-1, PLATFORM->getLogicalHeight() - 20.0f));

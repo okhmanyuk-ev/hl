@@ -3,7 +3,6 @@
 #include "protocol.h"
 #include "utils.h"
 #include <bzlib.h>
-#include <Common/buffer_helpers.h>
 
 using namespace HL;
 
@@ -15,6 +14,15 @@ Channel::Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler rea
 {
 	mTimer.setInterval(Clock::FromMilliseconds(10));
 	mTimer.setCallback(std::bind(&Channel::transmit, this));
+}
+
+void Channel::onFrame()
+{
+	STATS_INDICATE_GROUP("netchan_seq", "in seq", getIncomingSequence());
+	STATS_INDICATE_GROUP("netchan_seq", "out seq", getOutgoingSequence());
+	STATS_INDICATE_GROUP("netchan_rel", "in rel", getIncomingReliable());
+	STATS_INDICATE_GROUP("netchan_rel", "out rel", getOutgoingReliable());
+	STATS_INDICATE_GROUP("netchan", "latency", Clock::ToMilliseconds(getLatency()));
 }
 
 void Channel::transmit()
@@ -164,11 +172,19 @@ void Channel::process(BitBuffer& msg)
 
 			if (!mOutgoingFragBuffers.empty())
 			{
-				if (!mOutgoingFragBuffers.begin()->buffers.empty()) 
+				auto& frags_buffer = *mOutgoingFragBuffers.begin();
+				if (!frags_buffer.buffers.empty())
 				{
-					mOutgoingFragBuffers.begin()->buffers.pop_front();
+					frags_buffer.buffers.pop_front();
 				}
-				if (mOutgoingFragBuffers.begin()->buffers.empty())
+				
+				int total = frags_buffer.total;
+				int count = total - frags_buffer.buffers.size();
+				int index = total << 16;
+				int percent = static_cast<int>((static_cast<float>(count) / static_cast<float>(total)) * 100.0f);
+				STATS_INDICATE_GROUP("netchan_frag", fmt::format("out frag {}", index), fmt::format("{}/{} ({}%)", count, total, percent));
+				
+				if (frags_buffer.buffers.empty())
 				{
 					mOutgoingFragBuffers.pop_front();
 				}
@@ -216,6 +232,9 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	int total = sequence & 0xFFFF;
 	
 	Utils::dlog("index: {} ({}/{}), offset: {}, size: {}", index, count, total, offset, size);
+	
+	int percent = static_cast<int>((static_cast<float>(count) / static_cast<float>(total)) * 100.0f);
+	STATS_INDICATE_GROUP("netchan_frag", fmt::format("in frag {}", index), fmt::format("{}/{} ({}%)", count, total, percent));
 
 	std::shared_ptr<FragBuffer> fb = nullptr;
 		
@@ -281,8 +300,8 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		buf.toStart();
 
 		Utils::dlog("fragments completed (size: {})", buf.getSize());
-			
-		if (Common::BufferHelpers::ReadString(buf) == "BZ2")
+		
+		if (buf.getRemaining() >= 3 && Common::BufferHelpers::ReadString(buf) == "BZ2")
 		{
 			uint32_t dst_len = 65536;
 			BitBuffer dst_buf;
@@ -322,6 +341,9 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 	int total = sequence & 0xFFFF;
 
 	Utils::dlog("index: {} ({}/{}), offset: {}, size: {}", index, count, total, offset, size);
+
+	int percent = static_cast<int>((static_cast<float>(count) / static_cast<float>(total)) * 100.0f);
+	STATS_INDICATE_GROUP("netchan_frag", fmt::format("in frag {}", index), fmt::format("{}/{} ({}%)", count, total, percent));
 
 	offset -= (int16_t)normalSize; // !!!
 

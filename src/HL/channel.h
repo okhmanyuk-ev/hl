@@ -2,17 +2,11 @@
 
 // TODO: add timeouts for frag buffers
 
-#include <core/engine.h>
-#include <common/bitbuffer.h>
-#include <common/timer.h>
-#include <network/system.h>
-#include <console/device.h>
-#include <vector>
-#include <map>
+#include <shared/all.h>
 
 namespace HL
 {
-	class Channel
+	class Channel : public Common::FrameSystem::Frameable
 	{
 	public:
 		using MessagesHandler = std::function<void(BitBuffer& msg)>;
@@ -20,6 +14,9 @@ namespace HL
 
 	public:
 		Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
+
+	private:
+		void onFrame() override;
 
 	public:
 		void transmit();
