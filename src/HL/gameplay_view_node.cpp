@@ -73,6 +73,22 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 	}
 }
 
+// generic draw node
+
+void GenericDrawNode::draw()
+{
+	Scene::Node::draw();
+
+	GRAPHICS->pushModelMatrix(getTransform());
+
+	if (mDrawCallback)
+		mDrawCallback();
+
+	GRAPHICS->pop();
+}
+
+// gameplay view node
+
 GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	mClient(client)
 {
@@ -95,22 +111,18 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	mClient->setBeamPointsCallback([this](const glm::vec3& start, const glm::vec3& end, uint8_t lifetime, const glm::vec4& color) {
 		auto start_scr = worldToScreen(start);
 		auto end_scr = worldToScreen(end);
-		
-		auto rect = std::make_shared<Scene::Rectangle>();
-		rect->setColor(color);
-		rect->setPosition(start_scr);
-		rect->setWidth(1.0f);
-		rect->setHeight(glm::distance(start_scr, end_scr));
-		rect->setHorizontalPivot(0.5f);
-
-		auto forward = end - start;
-		auto rotation = glm::atan(forward.y, -forward.x);
-
-		rect->setRotation(rotation);
-		rect->runAction(Actions::Collection::Delayed((float)lifetime / 10.0f,
-			Actions::Collection::Kill(rect)
+		auto node = std::make_shared<GenericDrawNode>();
+		node->setStretch(1.0f);
+		node->setDrawCallback([node, start_scr, end_scr, color] {
+			GRAPHICS->draw(Renderer::Topology::LineList, {
+				{ { start_scr, 0.0f }, color },
+				{ { end_scr, 0.0f }, color }
+			});
+		});
+		node->runAction(Actions::Collection::Delayed((float)lifetime / 10.0f,
+			Actions::Collection::Kill(node)
 		));
-		attach(rect);
+		attach(node);
 	});
 
 	mClient->setBloodSpriteCallback([this](const glm::vec3& origin) {

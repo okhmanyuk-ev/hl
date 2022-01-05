@@ -238,7 +238,8 @@ void BaseClient::readConnectionlessAccepted(Network::Packet& packet)
 
 void BaseClient::readConnectionlessReject(Network::Packet& packet)
 {
-	LOG("connection rejected, reason: " + Common::BufferHelpers::ReadString(packet.buf));
+	auto reason = Common::BufferHelpers::ReadString(packet.buf);
+	disconnect(fmt::format("connection rejected ({})", reason));
 }
 
 void BaseClient::readRegularMessages(BitBuffer& msg)

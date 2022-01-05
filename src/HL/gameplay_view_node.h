@@ -23,6 +23,21 @@ namespace HL
 		std::string mPath;
 	};
 
+	class GenericDrawNode : public Scene::Node
+	{
+	public:
+		void draw() override;
+
+	public:
+		using DrawCallback = std::function<void()>;
+
+	public:
+		void setDrawCallback(DrawCallback value) { mDrawCallback = value; }
+
+	private:
+		DrawCallback mDrawCallback = nullptr;
+	};
+
 	class GameplayViewNode : public Scene::Node
 	{
 	public:
