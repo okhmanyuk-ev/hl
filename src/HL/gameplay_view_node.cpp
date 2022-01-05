@@ -366,31 +366,46 @@ void GameplayViewNode::draw()
 
 glm::vec2 GameplayViewNode::worldToScreen(const glm::vec3& value) const
 {
-	auto o = (value - mOverviewInfo->getOrigin()) / 8192.0f * mOverviewInfo->getZoom();
-	auto size = getAbsoluteSize();
+	auto origin = mOverviewInfo->getOrigin();
 
+	auto result = glm::vec2{ value.y, value.x };
+	result -= glm::vec2{ origin.y, origin.x };
 	if (mOverviewInfo->isRotated())
 	{
-		auto a = o.x;
-		o.x = o.y;
-		o.y = -a;
+		auto _x = result.x;
+		result.x = -result.y;
+		result.y = _x;
 	}
-
-	auto result = size / 2.0f;
-	result.x -= o.y * size.x;
-	result.y -= o.x * size.y * (1024.0f / 768.0f);
+	result /= 8192.0f;
+	result *= mOverviewInfo->getZoom();
+	result *= getAbsoluteSize();
+	result.y *= 1024.0f / 768.0f;
+	result *= -1.0f;
+	result += getAbsoluteSize() * 0.5f;
 
 	return result;
 }
 
 glm::vec3 GameplayViewNode::screenToWorld(const glm::vec2& value) const
 {
-	//auto o = (value - mOverviewInfo->getOrigin()) / 8192.0f * mOverviewInfo->getZoom();
+	auto origin = mOverviewInfo->getOrigin();
 
-//	auto result = value;
+	auto result = value;
+	result -= getAbsoluteSize() * 0.5f;
+	result *= -1.0f;
+	result /= getAbsoluteSize();
+	result /= mOverviewInfo->getZoom();
+	result *= 8192.0f;
+	result.y /= 1024.0f / 768.0f;
+	if (mOverviewInfo->isRotated())
+	{
+		auto _x = result.x;
+		result.x = result.y;
+		result.y = -_x;
+	}
+	result += glm::vec2{ origin.y, origin.x };
 
-	//result.y += o.y
-	return { value, 0.0f };
+	return { result.y, result.x, 0.0f };
 }
 
 std::optional<HL::Protocol::Resource> GameplayViewNode::findModel(int model_index) const
