@@ -348,7 +348,7 @@ void BSPFile::makeHull0()
 	}
 }
 
-trace_t BSPFile::traceLine(glm::vec3 start, glm::vec3 end) const
+trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end) const
 {
 	trace_t result;
 	

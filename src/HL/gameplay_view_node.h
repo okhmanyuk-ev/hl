@@ -47,11 +47,11 @@ namespace HL
 		void draw() override;
 
 	private:
-		glm::vec2 worldToScreen(const glm::vec3& value) const;
 		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
 
 	public:
+		glm::vec2 worldToScreen(const glm::vec3& value) const;
 		glm::vec3 screenToWorld(const glm::vec2& value) const;
 
 	private:
