@@ -247,7 +247,7 @@ namespace HL::Protocol
 
 		// Fields which can be transitted and reconstructed over the network stream
 		glm::vec3 origin;
-		float angles[3];
+		glm::vec3 angles;
 
 		int modelindex;
 		int sequence;
@@ -272,7 +272,7 @@ namespace HL::Protocol
 		int body;
 		uint8_t controller[4];
 		uint8_t blending[4];
-		float velocity[3];
+		glm::vec3 velocity;
 
 		// Send bbox down to client for use during prediction.
 		glm::vec3 mins;
@@ -295,7 +295,7 @@ namespace HL::Protocol
 		int weaponmodel;
 		int gaitsequence;
 		// If standing on conveyor, e.g.
-		float basevelocity[3];
+		glm::vec3 basevelocity;
 		// Use the crouched hull, or the regular player hull.
 		int usehull;
 		// Latched buttons last time state updated.
@@ -334,57 +334,44 @@ namespace HL::Protocol
 	{
 		glm::vec3 origin;
 		glm::vec3 velocity;
-
-		int					viewmodel;
-		float			punchangle[3];
-		int					flags;
-		int					waterlevel;
-		int					watertype;
-		float			view_ofs[3];
-		float				health;
-
-		int					bInDuck;
-
-		int					weapons; // remove?
-
-		int					flTimeStepSound;
-		int					flDuckTime;
-		int					flSwimTime;
-		int					waterjumptime;
-
-		float				maxspeed;
-
-		float				fov;
-		int					weaponanim;
-
-		int					m_iId;
-		int					ammo_shells;
-		int					ammo_nails;
-		int					ammo_cells;
-		int					ammo_rockets;
-		float				m_flNextAttack;
-
-		int					tfstate;
-
-		int					pushmsec;
-
-		int					deadflag;
-
-		std::string			physinfo;
-
-		// For mods
-		int					iuser1;
-		int					iuser2;
-		int					iuser3;
-		int					iuser4;
-		float				fuser1;
-		float				fuser2;
-		float				fuser3;
-		float				fuser4;
-		float			vuser1[3];
-		float			vuser2[3];
-		float			vuser3[3];
-		float			vuser4[3];
+		int viewmodel;
+		glm::vec3 punchangle;
+		int flags;
+		int waterlevel;
+		int watertype;
+		glm::vec3 view_ofs;
+		float health;
+		int	bInDuck;
+		int weapons; // remove?
+		int flTimeStepSound;
+		int flDuckTime;
+		int flSwimTime;
+		int waterjumptime;
+		float maxspeed;
+		float fov;
+		int weaponanim;
+		int m_iId;
+		int ammo_shells;
+		int ammo_nails;
+		int ammo_cells;
+		int ammo_rockets;
+		float m_flNextAttack;
+		int tfstate;
+		int pushmsec;
+		int deadflag;
+		std::string physinfo;
+		int iuser1;
+		int iuser2;
+		int iuser3;
+		int iuser4;
+		float fuser1;
+		float fuser2;
+		float fuser3;
+		float fuser4;
+		glm::vec3 vuser1;
+		glm::vec3 vuser2;
+		glm::vec3 vuser3;
+		glm::vec3 vuser4;
 	};
 
 	struct WeaponData

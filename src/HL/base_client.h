@@ -24,7 +24,8 @@ namespace HL
 			Disconnected,
 			Challenging,
 			Connecting,
-			Connected
+			Connected,
+			GameStarted // signon 2, after entities start receiving
 		};
 
 	public:

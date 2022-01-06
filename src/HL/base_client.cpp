@@ -1844,4 +1844,6 @@ void BaseClient::initializeGame()
 	sendCommand("unpause \n");
 	sendCommand("unpause \n");*/
 
+	mState = State::GameStarted;
+
 }
