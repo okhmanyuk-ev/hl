@@ -262,13 +262,9 @@ void GameplayViewNode::draw()
 	if (IMSCENE->nodeWasInitialized())
 	{
 		background->setScale(0.0f);
-		background->runAction(
-			Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut)
-		);
+		background->runAction(Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut));
 	}
-	IMSCENE->setupPreKillAction(background, 
-		Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn)
-	);
+	IMSCENE->setupPreKillAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
 	drawPlayers(background);
 }
