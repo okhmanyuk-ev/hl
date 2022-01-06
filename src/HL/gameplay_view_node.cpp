@@ -254,21 +254,25 @@ void GameplayViewNode::draw()
 	if (texture == nullptr)
 		return;
 
-	auto bg = IMSCENE->attachTemporaryNode<Scene::Sprite>(*this);
-	bg->setStretch(1.0f);
-	bg->setPivot(0.5f);
-	bg->setAnchor(0.5f);
-	bg->setTexture(texture);		
+	auto background = IMSCENE->attachTemporaryNode<Scene::Sprite>(*this);
+	background->setStretch(1.0f);
+	background->setPivot(0.5f);
+	background->setAnchor(0.5f);
+	background->setTexture(texture);
 	if (IMSCENE->nodeWasInitialized())
 	{
-		bg->setScale(0.0f);
-		bg->runAction(
-			Actions::Collection::ChangeScale(bg, { 1.0f, 1.0f }, 0.5f, Easing::BackOut)
+		background->setScale(0.0f);
+		background->runAction(
+			Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut)
 		);
 	}
-	IMSCENE->setupPreKillAction(bg, Actions::Collection::ChangeScale(bg, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
+	IMSCENE->setupPreKillAction(background, 
+		Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn)
+	);
 
-	const auto& userinfos = mClient->getPlayerUserInfos();
+	drawPlayers(background);
+
+	/*const auto& userinfos = mClient->getPlayerUserInfos();
 	
 	auto dTime = FRAME->getTimeDelta();
 
@@ -415,6 +419,137 @@ void GameplayViewNode::draw()
 				auto name_str = HL::Utils::GetInfoValue(userinfos.at(i - 1), "name");
 				name->setText(name_str);
 			}
+		}
+	}*/
+}
+
+void GameplayViewNode::drawPlayers(std::shared_ptr<Scene::Sprite> holder)
+{
+	const auto& serverinfo = mClient->getServerInfo().value();
+	const auto& gamemod = mClient->getGameMod();
+	const auto& entities = mClient->getEntities();
+	const auto& userinfos = mClient->getPlayerUserInfos();
+	const auto& clientdata = mClient->getClientData();
+	const auto counter_strike = std::dynamic_pointer_cast<CounterStrike>(gamemod);
+
+	for (int index = 1; index < serverinfo.max_players; index++)
+	{
+		if (!gamemod->isPlayerAlive(index))
+			continue;
+
+		HL::Protocol::Entity* entity = nullptr;
+
+		if (entities.contains(index))
+			entity = entities.at(index);
+
+		bool is_me = index == serverinfo.index + 1;
+
+		std::optional<glm::vec3> origin;
+
+		if (is_me)
+		{
+			origin = clientdata.origin;
+		}
+		else if (entity != nullptr)
+		{
+			origin = entity->origin;
+		}
+		else if (counter_strike)
+		{
+			auto radar = counter_strike->getPlayerRadarCoord(index);
+			if (radar.has_value())
+			{
+				origin = radar.value();
+			}
+		}
+
+		if (!origin.has_value())
+			continue;
+
+		std::optional<float> rotation;
+		std::vector<std::pair<std::string, std::string>> labels;
+
+		if (entity != nullptr)
+		{
+			auto weapon_model = findModel(entity->weaponmodel);
+			if (weapon_model.has_value())
+			{
+				labels.push_back({ "weapon", weapon_model.value().name });
+			}
+			rotation = glm::radians(-entity->angles[1]);
+		}
+
+		if (userinfos.count(index - 1) > 0)
+			labels.push_back({ "name", HL::Utils::GetInfoValue(userinfos.at(index - 1), "name") });
+
+		auto color = gamemod->getPlayerColor(index);
+
+		drawPlayer(holder, index, origin.value(), rotation, color, labels);
+	}
+}
+
+void GameplayViewNode::drawPlayer(std::shared_ptr<Scene::Sprite> holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+	const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels)
+{
+	auto pos = worldToScreen(origin);
+	const auto dTime = FRAME->getTimeDelta();
+
+	const float SpawnDuration = 0.5f;
+	const float KillDuration = 0.5f;
+
+	auto player = IMSCENE->attachTemporaryNode(*holder, fmt::format("player_{}", index));
+	player->setSize(8.0f);
+	player->setPivot(0.5f);
+	player->setPosition(IMSCENE->nodeWasInitialized() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
+	IMSCENE->setupPreKillAction(player, Actions::Collection::Wait(KillDuration)); // wait until childs die
+
+	auto body = IMSCENE->attachTemporaryNode<Scene::Circle>(*player);
+	if (rotation.has_value())
+	{
+		auto r = rotation.value();
+		
+		if (mOverviewInfo->isRotated())
+			r = glm::radians(90.0f);
+
+		body->setRotation(IMSCENE->nodeWasInitialized() ? r : Common::Helpers::SmoothRotationAssign(body->getRotation(), r, dTime));
+	}
+	body->setStretch(1.0f);
+	body->setPivot(0.5f);
+	body->setAnchor(0.5f);
+	body->setColor(color);
+	if (IMSCENE->nodeWasInitialized())
+	{
+		body->setScale(0.0f);
+		body->runAction(Actions::Collection::ChangeScale(body, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
+	}
+	IMSCENE->setupPreKillAction(body, Actions::Collection::ChangeScale(body, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
+
+	if (rotation.has_value())
+	{
+		auto arrow = IMSCENE->attachTemporaryNode<Scene::Rectangle>(*body);
+		arrow->setSize({ 1.0f, 4.0f });
+		arrow->setPivot({ 0.5f, 1.0f });
+		arrow->setAnchor({ 0.5f, 0.0f });
+		arrow->setColor(color);
+		IMSCENE->setupPreKillAction(player, Actions::Collection::Wait(KillDuration)); // wait until parent die
+	}
+
+	float y = -2.0f;
+
+	for (const auto& [key, text] : labels)
+	{
+		y -= 10.0f;
+		auto label = IMSCENE->attachTemporaryNode<Scene::Label>(*player, key);
+		label->setPivot(0.5f);
+		label->setAnchor({ 0.5f, 0.0f });
+		label->setY(IMSCENE->nodeWasInitialized() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
+		label->setFontSize(10.0f);
+		label->setText(text);
+		IMSCENE->setupPreKillAction(label, Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
+		if (IMSCENE->nodeWasInitialized())
+		{
+			label->setScale(0.0f);
+			label->runAction(Actions::Collection::ChangeScale(label, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
 		}
 	}
 }

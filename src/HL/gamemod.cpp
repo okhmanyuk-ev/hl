@@ -9,6 +9,11 @@ glm::vec3 GameMod::getPlayerColor(int index) const
 	return Graphics::Color::Yellow;
 }
 
+bool GameMod::isPlayerAlive(int index) const
+{
+	return true;
+}
+
 void GameMod::readMessage(const std::string& name, BitBuffer& msg)
 {
 	if (!mReadCallbacks.contains(name))
@@ -130,6 +135,16 @@ glm::vec3 CounterStrike::getPlayerColor(int index) const
 		return Graphics::Color::DarkGray;
 }
 
+bool CounterStrike::isPlayerAlive(int index) const
+{
+	if (!mScoreStatus.contains(index))
+		return true;
+
+	auto status = mScoreStatus.at(index);
+
+	return (status & SCORE_STATUS_DEAD) == 0;
+}
+
 CounterStrike::Team CounterStrike::getPlayerTeam(int index) const
 {
 	if (!mTeamInfo.contains(index))
@@ -144,12 +159,4 @@ std::optional<glm::vec3> CounterStrike::getPlayerRadarCoord(int index) const
 		return std::nullopt;
 
 	return mRadar.at(index);
-}
-
-bool CounterStrike::isPlayerDead(int index) const
-{
-	if (!mScoreStatus.contains(index))
-		return false;
-
-	return mScoreStatus.at(index) & SCORE_STATUS_DEAD;
 }

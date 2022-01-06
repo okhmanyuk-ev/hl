@@ -47,6 +47,11 @@ namespace HL
 		void draw() override;
 
 	private:
+		void drawPlayers(std::shared_ptr<Scene::Sprite> holder);
+		void drawPlayer(std::shared_ptr<Scene::Sprite> holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+			const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels);
+
+	private:
 		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
 

@@ -12,6 +12,9 @@ namespace HL
 
 	public:
 		virtual glm::vec3 getPlayerColor(int index) const;
+		virtual bool isPlayerAlive(int index) const;
+
+	public:
 		void readMessage(const std::string& name, BitBuffer& msg);
 		void addReadCallback(const std::string& name, ReadMessageCallback callback);
 		void setSendCommandCallback(SendCommandCallback value) { mSendCommandCallback = value; }
@@ -46,9 +49,11 @@ namespace HL
 
 	public:
 		glm::vec3 getPlayerColor(int index) const override;
+		bool isPlayerAlive(int index) const override;
+
+	public:
 		Team getPlayerTeam(int index) const;
 		std::optional<glm::vec3> getPlayerRadarCoord(int index) const;
-		bool isPlayerDead(int index) const;
 
 	private:
 		std::map<uint8_t, Team> mTeamInfo;
