@@ -333,7 +333,7 @@ namespace HL::Protocol
 	struct ClientData
 	{
 		glm::vec3 origin;
-		float			velocity[3];
+		glm::vec3 velocity;
 
 		int					viewmodel;
 		float			punchangle[3];
