@@ -275,8 +275,8 @@ namespace HL::Protocol
 		float velocity[3];
 
 		// Send bbox down to client for use during prediction.
-		float mins[3];
-		float maxs[3];
+		glm::vec3 mins;
+		glm::vec3 maxs;
 
 		int aiment;
 		// If owned by a player, the index of that player ( for projectiles ).

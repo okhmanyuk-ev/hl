@@ -4,6 +4,7 @@
 #include <string_view>
 #include <fstream>
 #include <vector>
+#include <map>
 
 #include "wadfile.h"
 
@@ -264,6 +265,8 @@ public:
 	bool recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace) const;
 	int hullPointContents(const hull_t& hull, int num, const glm::vec3& point) const;
 
+	const auto& getModelsMap() const { return mModelsMap; }
+
 private:
 	std::vector<dvertex_t> m_Vertices;
 	std::vector<dedge_t> m_Edges;
@@ -278,6 +281,8 @@ private:
 	std::vector<mnode_t> m_Nodes;
 	std::vector<mleaf_t> m_Leafs;
 	std::vector<dmodel_t> m_Models;
+
+	std::map<std::string, dmodel_t*> mModelsMap;
 
 	hull_t m_Hulls[MAX_MAP_HULLS];
 };

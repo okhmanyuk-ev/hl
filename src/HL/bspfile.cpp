@@ -256,13 +256,11 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 	}
 
 	makeHull0();
-	
-	return;
-	
+		
 	// set up the submodels (FIXME: this is confusing)
 	for (int i = 0; i < m_Models.size(); i++)
 	{
-		auto bm = &m_Models[i];
+		//auto bm = &m_Models[i];
 
 	//	m_Hulls[0].firstclipnode = bm->headnode[0];
 		
@@ -298,6 +296,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 			loadmodel->name[sizeof(loadmodel->name) - 1] = 0;
 			mod = loadmodel;
 		}*/
+		mModelsMap.insert({ fmt::format("*{}", i + 1), &m_Models.at(i) });
 	}
 }
 

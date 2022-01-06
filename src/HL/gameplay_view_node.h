@@ -47,17 +47,22 @@ namespace HL
 		void draw() override;
 
 	private:
-		void drawPlayers(std::shared_ptr<Scene::Sprite> holder);
-		void drawPlayer(std::shared_ptr<Scene::Sprite> holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+		void drawEntities(Scene::Node& holder);
+		void drawPlayers(Scene::Node& holder);
+		void drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<float> rotation,
 			const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels);
 
 	private:
-		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
 
 	public:
 		glm::vec2 worldToScreen(const glm::vec3& value) const;
 		glm::vec3 screenToWorld(const glm::vec2& value) const;
+		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
+		std::string getNiceModelName(const HL::Protocol::Resource& model) const;
+
+	public:
+		const auto& getOverviewInfo() const { return mOverviewInfo; }
 
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?

@@ -113,7 +113,7 @@ void HudViews::onFrame()
 			if (model->name.empty())
 				continue;
 
-			if (model->name[0] == '*')
+			if (model->name[0] == '*' && mWantShowEntities == 1)
 				continue;
 				
 			const std::vector<std::string> content

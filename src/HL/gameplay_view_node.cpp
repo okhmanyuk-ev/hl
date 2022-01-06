@@ -266,10 +266,60 @@ void GameplayViewNode::draw()
 	}
 	IMSCENE->setupPreKillAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
-	drawPlayers(background);
+	drawEntities(*background);
+	drawPlayers(*background);
 }
 
-void GameplayViewNode::drawPlayers(std::shared_ptr<Scene::Sprite> holder)
+void GameplayViewNode::drawEntities(Scene::Node& holder)
+{
+	const auto dTime = FRAME->getTimeDelta();
+	const auto& entities = mClient->getEntities();
+
+	for (auto [index, entity] : entities)
+	{
+		if (mClient->isPlayerIndex(index))
+			continue;
+
+		auto model = findModel(entity->modelindex);
+
+		if (!model.has_value())
+			continue;
+
+		auto origin_scr = worldToScreen(entity->origin);
+
+		if (model.value().name.substr(0, 1) == "*")
+		{
+			auto origin = (entity->maxs + entity->mins) / 2.0f;
+			origin_scr = worldToScreen(origin);
+		}
+
+		auto rotation = glm::radians(-entity->angles[1]);
+
+		if (getOverviewInfo()->isRotated())
+			rotation += glm::radians(90.0f);
+
+		auto node = IMSCENE->attachTemporaryNode(holder, fmt::format("player_{}", index));
+		node->setSize(4.0f);
+		node->setPivot(0.5f);
+		node->setPosition(IMSCENE->nodeWasInitialized() ? origin_scr : Common::Helpers::SmoothValueAssign(node->getPosition(), origin_scr, dTime));
+
+		auto body = IMSCENE->attachTemporaryNode<Scene::Rectangle>(*node);
+		body->setRotation(rotation);
+		body->setStretch(1.0f);
+		body->setPivot(0.5f);
+		body->setAnchor(0.5f);
+		body->setColor(Graphics::Color::Yellow);
+
+		auto label = IMSCENE->attachTemporaryNode<Scene::Label>(*node);
+		label->setPivot(0.5f);
+		label->setAnchor({ 0.5f, 0.0f });
+		label->setY(-10.0f);
+		label->setFontSize(8.0f);
+		label->setText(getNiceModelName(model.value()));
+	}
+}
+
+void GameplayViewNode::drawPlayers(Scene::Node& holder)
 {
 	const auto& serverinfo = mClient->getServerInfo().value();
 	const auto& gamemod = mClient->getGameMod();
@@ -320,7 +370,7 @@ void GameplayViewNode::drawPlayers(std::shared_ptr<Scene::Sprite> holder)
 			auto weapon_model = findModel(entity->weaponmodel);
 			if (weapon_model.has_value())
 			{
-				labels.push_back({ "weapon", weapon_model.value().name });
+				labels.push_back({ "weapon", getNiceModelName(weapon_model.value()) });
 			}
 			rotation = glm::radians(-entity->angles[1]);
 		}
@@ -334,7 +384,7 @@ void GameplayViewNode::drawPlayers(std::shared_ptr<Scene::Sprite> holder)
 	}
 }
 
-void GameplayViewNode::drawPlayer(std::shared_ptr<Scene::Sprite> holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<float> rotation,
 	const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels)
 {
 	auto pos = worldToScreen(origin);
@@ -343,7 +393,7 @@ void GameplayViewNode::drawPlayer(std::shared_ptr<Scene::Sprite> holder, int ind
 	const float SpawnDuration = 0.5f;
 	const float KillDuration = 0.5f;
 
-	auto player = IMSCENE->attachTemporaryNode(*holder, fmt::format("player_{}", index));
+	auto player = IMSCENE->attachTemporaryNode(holder, fmt::format("player_{}", index));
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
 	player->setPosition(IMSCENE->nodeWasInitialized() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
@@ -355,7 +405,7 @@ void GameplayViewNode::drawPlayer(std::shared_ptr<Scene::Sprite> holder, int ind
 		auto r = rotation.value();
 		
 		if (mOverviewInfo->isRotated())
-			r = glm::radians(90.0f);
+			r += glm::radians(90.0f);
 
 		body->setRotation(IMSCENE->nodeWasInitialized() ? r : Common::Helpers::SmoothRotationAssign(body->getRotation(), r, dTime));
 	}
@@ -456,6 +506,15 @@ std::optional<HL::Protocol::Resource> GameplayViewNode::findModel(int model_inde
 		return std::nullopt;
 	else
 		return *result;
+}
+
+std::string GameplayViewNode::getNiceModelName(const HL::Protocol::Resource& model) const
+{
+	if (model.name.substr(0, 1) == "*")
+		return model.name;
+
+	auto path = std::filesystem::path(model.name);
+	return path.filename().replace_extension().string();
 }
 
 std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() const
