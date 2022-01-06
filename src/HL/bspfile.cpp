@@ -348,7 +348,7 @@ void BSPFile::makeHull0()
 	}
 }
 
-trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end) const
+trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, bool models) const
 {
 	trace_t result;
 	
@@ -357,21 +357,33 @@ trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end) const
 	result.allsolid = true;
 	result.startsolid = false;
 
-	bool b = recursiveHullCheck(m_Hulls[0], m_Hulls[0].firstclipnode, 0, 1, start, end, result);
+	bool b = recursiveHullCheck(m_Hulls[0], m_Hulls[0].firstclipnode, 0.0f, 1.0f, start, end, result);
 	
-	for (auto& model : m_Models)
+	if (models)
 	{
-		trace_t trace;
+		for (auto& model : m_Models)
+		{
+			trace_t trace;
 
-		trace.fraction = 1.0f;
-		trace.endpos = end;
-		trace.allsolid = true;
-		trace.startsolid = false;
+			trace.fraction = 1.0f;
+			trace.endpos = end;
+			trace.allsolid = true;
+			trace.startsolid = false;
 
-		recursiveHullCheck(m_Hulls[0], model.headnode[0], 0, 1, start, end, trace);
-		
-		if (trace.fraction < result.fraction)
-			result = trace;
+			recursiveHullCheck(m_Hulls[0], model.headnode[0], 0.0f, 1.0f, start, end, trace);
+
+			/*if (trace.allsolid)
+				trace.startsolid = true;
+
+			if (trace.startsolid)
+			{
+				trace.fraction = 0.0f;
+				trace.endpos = start;
+			}*/
+
+			if (trace.fraction < result.fraction)
+				result = trace;
+		}
 	}
 
 	if (result.allsolid)
