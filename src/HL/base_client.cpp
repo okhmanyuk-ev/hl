@@ -1570,6 +1570,11 @@ void BaseClient::onConnect(CON_ARGS)
 
 void BaseClient::onDisconnect(CON_ARGS)
 {
+	if (mState <= State::Disconnected)
+	{
+		LOG("cannot disconnect, not connected");
+		return;
+	}
 	if (mChannel)
 	{
 		sendCommand("dropclient");

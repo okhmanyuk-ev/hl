@@ -92,18 +92,6 @@ void GenericDrawNode::draw()
 GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	mClient(client)
 {
-	mClient->setGameEngineInitializedCallback([this] {
-		auto info = mClient->getServerInfo().value();
-		std::filesystem::path map_path = info.map;
-		auto map_name = map_path.filename().replace_extension().string();
-		auto txt_path = fmt::format("overviews/{}.txt", map_name);
-		mOverviewInfo = OverviewInfo();
-		if (Platform::Asset::Exists(txt_path))
-		{
-			mOverviewInfo->load(Platform::Asset::Asset(txt_path));
-		}
-	});
-
 	mClient->setDisconnectCallback([this](auto) {
 		mOverviewInfo.reset();
 	});
@@ -248,6 +236,8 @@ void GameplayViewNode::draw()
 
 	if (!mClient->getServerInfo().has_value())
 		return;
+
+	ensureOverviewInfoLoaded();
 
 	auto texture = getCurrentMapTexture();
 
@@ -561,4 +551,20 @@ std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() cons
 	}
 
 	return result;
+}
+
+void GameplayViewNode::ensureOverviewInfoLoaded()
+{
+	if (mOverviewInfo.has_value())
+		return;
+
+	auto info = mClient->getServerInfo().value();
+	std::filesystem::path map_path = info.map;
+	auto map_name = map_path.filename().replace_extension().string();
+	auto txt_path = fmt::format("overviews/{}.txt", map_name);
+	mOverviewInfo = OverviewInfo();
+	if (Platform::Asset::Exists(txt_path))
+	{
+		mOverviewInfo->load(Platform::Asset::Asset(txt_path));
+	}
 }

@@ -54,6 +54,7 @@ namespace HL
 
 	private:
 		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
+		void ensureOverviewInfoLoaded();
 
 	public:
 		glm::vec2 worldToScreen(const glm::vec3& value) const;
