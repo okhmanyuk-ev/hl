@@ -289,14 +289,11 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 
 		if (model.value().name.substr(0, 1) == "*")
 		{
-			auto origin = (entity->maxs + entity->mins) / 2.0f;
-			origin_scr = worldToScreen(origin);
+			auto position = (entity->maxs + entity->mins) / 2.0f;
+			origin_scr = worldToScreen(position + entity->origin);
 		}
 
-		auto rotation = glm::radians(-entity->angles[1]);
-
-		if (getOverviewInfo()->isRotated())
-			rotation += glm::radians(90.0f);
+		auto rotation = worldToScreenAngles(entity->angles);
 
 		auto node = IMSCENE->attachTemporaryNode(holder, fmt::format("player_{}", index));
 		node->setSize(4.0f);
@@ -362,7 +359,7 @@ void GameplayViewNode::drawPlayers(Scene::Node& holder)
 		if (!origin.has_value())
 			continue;
 
-		std::optional<float> rotation;
+		std::optional<glm::vec3> angles;
 		std::vector<std::pair<std::string, std::string>> labels;
 
 		if (entity != nullptr)
@@ -372,7 +369,7 @@ void GameplayViewNode::drawPlayers(Scene::Node& holder)
 			{
 				labels.push_back({ "weapon", getNiceModelName(weapon_model.value()) });
 			}
-			rotation = glm::radians(-entity->angles[1]);
+			angles = entity->angles;
 		}
 
 		if (userinfos.count(index - 1) > 0)
@@ -380,11 +377,11 @@ void GameplayViewNode::drawPlayers(Scene::Node& holder)
 
 		auto color = gamemod->getPlayerColor(index);
 
-		drawPlayer(holder, index, origin.value(), rotation, color, labels);
+		drawPlayer(holder, index, origin.value(), angles, color, labels);
 	}
 }
 
-void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<glm::vec3> angles,
 	const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels)
 {
 	auto pos = worldToScreen(origin);
@@ -400,14 +397,10 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	IMSCENE->setupPreKillAction(player, Actions::Collection::Wait(KillDuration)); // wait until childs die
 
 	auto body = IMSCENE->attachTemporaryNode<Scene::Circle>(*player);
-	if (rotation.has_value())
+	if (angles.has_value())
 	{
-		auto r = rotation.value();
-		
-		if (mOverviewInfo->isRotated())
-			r += glm::radians(90.0f);
-
-		body->setRotation(IMSCENE->nodeWasInitialized() ? r : Common::Helpers::SmoothRotationAssign(body->getRotation(), r, dTime));
+		auto rotation = worldToScreenAngles(angles.value());
+		body->setRotation(IMSCENE->nodeWasInitialized() ? rotation : Common::Helpers::SmoothRotationAssign(body->getRotation(), rotation, dTime));
 	}
 	body->setStretch(1.0f);
 	body->setPivot(0.5f);
@@ -420,7 +413,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	}
 	IMSCENE->setupPreKillAction(body, Actions::Collection::ChangeScale(body, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
 
-	if (rotation.has_value())
+	if (angles.has_value())
 	{
 		auto arrow = IMSCENE->attachTemporaryNode<Scene::Rectangle>(*body);
 		arrow->setSize({ 1.0f, 4.0f });
@@ -492,6 +485,16 @@ glm::vec3 GameplayViewNode::screenToWorld(const glm::vec2& value) const
 	result += glm::vec2{ origin.y, origin.x };
 
 	return { result.y, result.x, 0.0f };
+}
+
+float GameplayViewNode::worldToScreenAngles(const glm::vec3& value) const
+{
+	auto result = glm::radians(-value.y);
+
+	if (mOverviewInfo->isRotated())
+		result += glm::radians(90.0f);
+
+	return result;
 }
 
 std::optional<HL::Protocol::Resource> GameplayViewNode::findModel(int model_index) const

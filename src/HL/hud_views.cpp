@@ -82,8 +82,10 @@ void HudViews::onFrame()
 		{
 			{ "" },
 			{ "Model" },
-			{ "Position" },
+			{ "Origin" },
 			{ "Angles" },
+			{ "MinS" },
+			{ "MaxS" },
 			{ "MoveType" }
 		};
 
@@ -97,7 +99,6 @@ void HudViews::onFrame()
 		}
 
 		ImGui::Separator();
-
 
 		const auto& resources = mBaseClient.getResources();
 
@@ -115,17 +116,20 @@ void HudViews::onFrame()
 
 			if (model->name[0] == '*' && mWantShowEntities == 1)
 				continue;
-				
+
+			const auto& origin = entity->origin;
+			const auto& angles = entity->angles;
+			const auto& mins = entity->mins;
+			const auto& maxs = entity->maxs;
+
 			const std::vector<std::string> content
 			{
 				{ std::to_string(index) + "." },
 				{ model->name },
-				{ std::to_string((int)entity->origin[0]) + " " +
-					std::to_string((int)entity->origin[1]) + " " +
-					std::to_string((int)entity->origin[2]) },
-				{ std::to_string((int)entity->angles[0]) + " " +
-					std::to_string((int)entity->angles[1]) + " " +
-					std::to_string((int)entity->angles[2]) },
+				{ fmt::format("{:.0f} {:.0f} {:.0f}", origin.x, origin.y, origin.z) },
+				{ fmt::format("{:.0f} {:.0f} {:.0f}", angles.x, angles.y, angles.z) },
+				{ fmt::format("{:.0f} {:.0f} {:.0f}", mins.x, mins.y, mins.z) },
+				{ fmt::format("{:.0f} {:.0f} {:.0f}", maxs.x, maxs.y, maxs.z) },
 				{ std::to_string(entity->movetype) }
 			};
 

@@ -49,7 +49,7 @@ namespace HL
 	private:
 		void drawEntities(Scene::Node& holder);
 		void drawPlayers(Scene::Node& holder);
-		void drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<float> rotation,
+		void drawPlayer(Scene::Node& holder, int index, const glm::vec3& origin, std::optional<glm::vec3> angles,
 			const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels);
 
 	private:
@@ -58,11 +58,9 @@ namespace HL
 	public:
 		glm::vec2 worldToScreen(const glm::vec3& value) const;
 		glm::vec3 screenToWorld(const glm::vec2& value) const;
+		float worldToScreenAngles(const glm::vec3& value) const;
 		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::string getNiceModelName(const HL::Protocol::Resource& model) const;
-
-	public:
-		const auto& getOverviewInfo() const { return mOverviewInfo; }
 
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
