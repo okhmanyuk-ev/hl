@@ -1614,6 +1614,11 @@ void BaseClient::onReconnect(CON_ARGS)
 	mEntities.clear();
 	mState = State::Connected;
 	mServerInfo.reset();
+	mResources.clear();
+	mEntities.clear();
+	mDeltaEntities.clear();
+	mBaselines.clear();
+	mExtraBaselines.clear();
 	sendCommand("new");
 }
 
