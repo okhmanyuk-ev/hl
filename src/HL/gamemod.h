@@ -27,6 +27,12 @@ namespace HL
 		SendCommandCallback mSendCommandCallback = nullptr;
 	};
 
+	class DummyGameMod : public GameMod
+	{
+	public:
+		DummyGameMod();
+	};
+
 #define SCORE_STATUS_NONE       0
 #define SCORE_STATUS_DEAD       1 << 0
 #define SCORE_STATUS_BOMB       1 << 1

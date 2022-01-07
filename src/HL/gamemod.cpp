@@ -32,6 +32,15 @@ void GameMod::sendCommand(const std::string& cmd)
 	mSendCommandCallback(cmd);
 }
 
+// DummyGameMod
+
+DummyGameMod::DummyGameMod()
+{
+	addReadCallback("ReqState", [this](auto& msg) {
+		sendCommand("VModEnable 1");
+	});
+}
+
 // CounterStrike
 
 CounterStrike::CounterStrike()
