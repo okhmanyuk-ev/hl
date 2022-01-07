@@ -549,8 +549,11 @@ void BaseClient::readRegularEvent(BitBuffer& msg)
 
 		if (mDlogsEvents)
 		{
-			Utils::dlog("index: {}, packet: {}, entity: {}, fire_time: {}, flags: {}", evt.index, evt.packet_index, 
-				evt.entity_index, evt.fire_time, evt.flags);
+			Utils::dlog("index: {}, packet: {}, entity: {}, fire_time: {}, flags: {}, args: ["
+				"origin: {:.0f} {:.0f} {:.0f}, angles: {:.0f} {:.0f} {:.0f}, velocity: {:.0f} {:.0f} {:.0f}]", 
+				evt.index, evt.packet_index, evt.entity_index, evt.fire_time, evt.flags, evt.args.origin.x, 
+				evt.args.origin.y, evt.args.origin.z, evt.args.angles.x, evt.args.angles.y, evt.args.angles.z, 
+				evt.args.velocity.x, evt.args.velocity.y, evt.args.velocity.z);
 		}
 
 		if (mEventCallback)
