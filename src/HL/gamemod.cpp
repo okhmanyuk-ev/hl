@@ -55,7 +55,7 @@ CounterStrike::CounterStrike()
 	AddCallback("SayText", ReadSayText)
 	AddCallback("MOTD", ReadMOTD)
 	*/
-	addReadCallback("TeamInfo", [this](auto& msg) {
+	addReadCallback("TeamInfo", [this](BitBuffer& msg) {
 		auto player_id = msg.read<uint8_t>();
 		auto team = Common::BufferHelpers::ReadString(msg);
 		mTeamInfo[player_id] = magic_enum::enum_cast<Team>(team).value_or(Team::UNASSIGNED);

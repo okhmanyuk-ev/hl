@@ -2,7 +2,7 @@
 
 #include "protocol.h"
 #include <HL/md5.h>
-#include <Common/buffer_helpers.h>
+#include <common/buffer_helpers.h>
 #include <common/helpers.h>
 //#include <filesystem> // TODO: not working on android
 
@@ -11,8 +11,8 @@
 #include <cassert>
 #include <algorithm>
 
-#include <Platform/defines.h>
-#include <Platform/asset.h>
+#include <platform/defines.h>
+#include <platform/asset.h>
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -510,7 +510,7 @@ void BaseClient::readRegularGameMessage(BitBuffer& msg, uint8_t index)
 void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
 {
 	auto game_dir = mServerInfo.value().game_dir;
-	Platform::Asset::Write(game_dir + "/" + std::string(fileName), msg.getMemory(), msg.getSize());
+    Platform::Asset::Write(game_dir + "/" + std::string(fileName), msg.getMemory(), msg.getSize(), HL_ASSET_STORAGE);
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
 	
 	LOG("received: \"" + std::string(fileName) + "\", size: " +
@@ -1679,10 +1679,10 @@ bool BaseClient::isResourceRequired(const Protocol::Resource& resource)
 {
 	auto game_dir = mServerInfo.value().game_dir;
 
-	if (Platform::Asset::Exists(game_dir + '/' + resource.name))
+    if (Platform::Asset::Exists(game_dir + '/' + resource.name, HL_ASSET_STORAGE))
 		return false;
 
-	if (Platform::Asset::Exists("valve/" + resource.name))
+    if (Platform::Asset::Exists("valve/" + resource.name, HL_ASSET_STORAGE))
 		return false;
 
 	if (mIsResourceRequiredCallback != nullptr && mIsResourceRequiredCallback(resource))

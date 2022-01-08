@@ -1,9 +1,10 @@
 #include "bspfile.h"
-#include <Common/buffer_helpers.h>
+#include <common/buffer_helpers.h>
 #include <algorithm>
 #include <sstream>
-#include <Console/system.h>
-#include <Common/bitbuffer.h>
+#include <console/system.h>
+#include <common/bitbuffer.h>
+#include "utils.h"
 
 std::string* BSPFile::Entity::getValueOf(std::string_view field)
 {
@@ -21,7 +22,7 @@ std::string* BSPFile::Entity::getValueOf(std::string_view field)
 void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 {
 	BitBuffer bf;
-	auto asset = Platform::Asset(fileName);
+    auto asset = Platform::Asset(fileName, HL_ASSET_STORAGE);
 
 	bf.write(asset.getMemory(), asset.getSize());
 	bf.toStart();

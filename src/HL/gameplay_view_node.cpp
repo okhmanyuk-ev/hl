@@ -565,6 +565,6 @@ void GameplayViewNode::ensureOverviewInfoLoaded()
 	mOverviewInfo = OverviewInfo();
 	if (Platform::Asset::Exists(txt_path))
 	{
-		mOverviewInfo->load(Platform::Asset::Asset(txt_path));
+		mOverviewInfo->load(Platform::Asset(txt_path));
 	}
 }
