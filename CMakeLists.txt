@@ -30,15 +30,15 @@ set_property(TARGET bzip2 PROPERTY FOLDER ${LIBS_FOLDER})
 
 # lua
 
-#file(GLOB LUA_SRC
-#	libs/lua/src/*.c
-#	libs/lua/src/*.h
-#)
+file(GLOB LUA_SRC
+	libs/lua/src/*.c
+	libs/lua/src/*.h
+)
 	
-#target_include_directories(${PROJECT_NAME} PUBLIC libs/lua/src)
-#add_library(lua STATIC ${LUA_SRC})
-#target_link_libraries(${PROJECT_NAME} lua)
-#set_property(TARGET lua PROPERTY FOLDER ${LIBS_FOLDER})
+target_include_directories(${PROJECT_NAME} PUBLIC libs/lua/src)
+add_library(lua STATIC ${LUA_SRC})
+target_link_libraries(${PROJECT_NAME} lua)
+set_property(TARGET lua PROPERTY FOLDER ${LIBS_FOLDER})
 
 # sol
 
