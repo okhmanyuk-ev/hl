@@ -92,10 +92,6 @@ void GenericDrawNode::draw()
 GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	mClient(client)
 {
-	mClient->setDisconnectCallback([this](auto) {
-		mOverviewInfo.reset();
-	});
-
 	mClient->setBeamPointsCallback([this](const glm::vec3& start, const glm::vec3& end, uint8_t lifetime, const glm::vec4& color) {
 		auto start_scr = worldToScreen(start);
 		auto end_scr = worldToScreen(end);
@@ -235,7 +231,10 @@ void GameplayViewNode::draw()
 	Node::draw();
 
 	if (!mClient->getServerInfo().has_value())
+	{
+		mOverviewInfo.reset();
 		return;
+	}
 
 	ensureOverviewInfoLoaded();
 
