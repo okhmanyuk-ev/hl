@@ -509,12 +509,16 @@ std::string GameplayViewNode::getNiceModelName(const HL::Protocol::Resource& mod
 	return path.filename().replace_extension().string();
 }
 
-std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() const
+std::string GameplayViewNode::getShortMapName() const
 {
 	const auto& info = mClient->getServerInfo().value();
 	auto path = std::filesystem::path(info.map);
-	auto map = path.filename().replace_extension().string();
-	auto texture_name = "overview_" + map;
+	return path.filename().replace_extension().string();
+}
+
+std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() const
+{
+	auto texture_name = "overview_" + getShortMapName();
 	auto result = TEXTURE(texture_name);
 
 	if (result.getTexture() == nullptr)

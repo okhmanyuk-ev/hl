@@ -91,11 +91,6 @@ typedef struct miptex_s
 	unsigned		offsets[MIPLEVELS];
 } miptex_t;
 
-typedef struct dvertex_s
-{
-	float			point[3];
-} dvertex_t;
-
 typedef struct dplane_s
 {
 	glm::vec3		normal;
@@ -232,6 +227,8 @@ typedef struct
 	int			hitgroup;		// 0 == generic, non zero is specific body part
 } trace_t;
 
+using BspVertex = glm::vec3;
+
 class BSPFile
 {
 public:
@@ -247,17 +244,17 @@ public:
 public:
 	std::vector<Entity*> findEntity(std::string_view className);
 	
-	auto& getVertices() { return m_Vertices; }
-	auto& getEdges() { return m_Edges; }
-	auto& getFaces() { return m_Faces; }
-	auto& getPlanes() { return m_Planes; }
-	auto& getSurfEdges() { return m_SurfEdges; }
-	auto& getTextures() { return m_Textures; }
-	auto& getTexInfos() { return m_TexInfos; }
-	auto& getEntities() { return m_Entities; }
-	auto& getWADFiles() { return m_WADFiles; }
-	auto& getLightData() { return m_LightData; }
-	auto& getModels() { return m_Models; }
+	auto& getVertices() const { return mVertices; }
+	auto& getEdges() const { return mEdges; }
+	auto& getFaces() const { return mFaces; }
+	auto& getPlanes() const { return mPlanes; }
+	auto& getSurfEdges() const { return mSurfEdges; }
+	auto& getTextures() const { return mTextures; }
+	auto& getTexInfos() const { return mTexInfos; }
+	auto& getEntities() const { return mEntities; }
+	auto& getWADFiles() const { return mWADFiles; }
+	auto& getLightData() const { return mLightData; }
+	auto& getModels() const { return mModels; }
 
 	void makeHull0();
 
@@ -268,19 +265,19 @@ public:
 	const auto& getModelsMap() const { return mModelsMap; }
 
 private:
-	std::vector<dvertex_t> m_Vertices;
-	std::vector<dedge_t> m_Edges;
-	std::vector<dface_t> m_Faces;
-	std::vector<mplane_t> m_Planes;
-	std::vector<int32_t> m_SurfEdges;
-	std::vector<miptex_t> m_Textures;
-	std::vector<texinfo_t> m_TexInfos;
-	std::vector<Entity> m_Entities;
-	std::vector<WADFile*> m_WADFiles;
-	std::vector<uint8_t> m_LightData;
-	std::vector<mnode_t> m_Nodes;
-	std::vector<mleaf_t> m_Leafs;
-	std::vector<dmodel_t> m_Models;
+	std::vector<BspVertex> mVertices;
+	std::vector<dedge_t> mEdges;
+	std::vector<dface_t> mFaces;
+	std::vector<mplane_t> mPlanes;
+	std::vector<int32_t> mSurfEdges;
+	std::vector<miptex_t> mTextures;
+	std::vector<texinfo_t> mTexInfos;
+	std::vector<Entity> mEntities;
+	std::vector<WADFile*> mWADFiles;
+	std::vector<uint8_t> mLightData;
+	std::vector<mnode_t> mNodes;
+	std::vector<mleaf_t> mLeafs;
+	std::vector<dmodel_t> mModels;
 
 	std::map<std::string, dmodel_t*> mModelsMap;
 

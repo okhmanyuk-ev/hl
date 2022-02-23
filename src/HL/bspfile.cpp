@@ -33,36 +33,36 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 	// vertices
 
-	m_Vertices.resize(header.lumps[LUMP_VERTEXES].filelen / sizeof(glm::vec3));
+	mVertices.resize(header.lumps[LUMP_VERTEXES].filelen / sizeof(glm::vec3));
 	bf.setPosition(header.lumps[LUMP_VERTEXES].fileofs);
-	bf.read(m_Vertices.data(), header.lumps[LUMP_VERTEXES].filelen);
+	bf.read(mVertices.data(), header.lumps[LUMP_VERTEXES].filelen);
 
 	// edges
 
-	m_Edges.resize(header.lumps[LUMP_EDGES].filelen / sizeof(dedge_t));
+	mEdges.resize(header.lumps[LUMP_EDGES].filelen / sizeof(dedge_t));
 	bf.setPosition(header.lumps[LUMP_EDGES].fileofs);
-	bf.read(m_Edges.data(), header.lumps[LUMP_EDGES].filelen);
+	bf.read(mEdges.data(), header.lumps[LUMP_EDGES].filelen);
 
 	// faces
 
-	m_Faces.resize(header.lumps[LUMP_FACES].filelen / sizeof(dface_t));
+	mFaces.resize(header.lumps[LUMP_FACES].filelen / sizeof(dface_t));
 	bf.setPosition(header.lumps[LUMP_FACES].fileofs);
-	bf.read(m_Faces.data(), header.lumps[LUMP_FACES].filelen);
+	bf.read(mFaces.data(), header.lumps[LUMP_FACES].filelen);
 
 	// surfedges
 
-	m_SurfEdges.resize(header.lumps[LUMP_SURFEDGES].filelen / sizeof(int32_t));
+	mSurfEdges.resize(header.lumps[LUMP_SURFEDGES].filelen / sizeof(int32_t));
 	bf.setPosition(header.lumps[LUMP_SURFEDGES].fileofs);
-	bf.read(m_SurfEdges.data(), header.lumps[LUMP_SURFEDGES].filelen);
+	bf.read(mSurfEdges.data(), header.lumps[LUMP_SURFEDGES].filelen);
 
 	// planes
 
-	m_Planes.resize(header.lumps[LUMP_PLANES].filelen / sizeof(dplane_t));
+	mPlanes.resize(header.lumps[LUMP_PLANES].filelen / sizeof(dplane_t));
 	bf.setPosition(header.lumps[LUMP_PLANES].fileofs);
 	
 	//bf.read(m_Planes.data(), header.lumps[LUMP_PLANES].filelen);
 
-	for (auto& plane : m_Planes)
+	for (auto& plane : mPlanes)
 	{
 		auto p = bf.read<dplane_t>();
 
@@ -74,10 +74,10 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 	// leafs 
 
-	m_Leafs.resize(header.lumps[LUMP_LEAFS].filelen / sizeof(dleaf_t));
+	mLeafs.resize(header.lumps[LUMP_LEAFS].filelen / sizeof(dleaf_t));
 	bf.setPosition(header.lumps[LUMP_LEAFS].fileofs);
 
-	for (auto& leaf : m_Leafs)
+	for (auto& leaf : mLeafs)
 	{
 		auto l = bf.read<dleaf_t>();
 
@@ -112,11 +112,11 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 	// nodes
 
-	m_Nodes.resize(header.lumps[LUMP_NODES].filelen / sizeof(dnode_t));
+	mNodes.resize(header.lumps[LUMP_NODES].filelen / sizeof(dnode_t));
 	bf.setPosition(header.lumps[LUMP_NODES].fileofs);
 	//bf.read(m_Nodes.data(), header.lumps[LUMP_NODES].filelen);
 
-	for (auto& node : m_Nodes)
+	for (auto& node : mNodes)
 	{
 		auto n = bf.read<dnode_t>();
 
@@ -126,7 +126,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 			node.minmaxs[j + 3] = n.maxs[j];
 		}
 
-		node.plane = &m_Planes[n.planenum];
+		node.plane = &mPlanes[n.planenum];
 		node.firstsurface = n.firstface;
 		node.numsurfaces = n.numfaces;
 
@@ -136,32 +136,32 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 			if (k >= 0)
 			{
-				node.children[j] = &m_Nodes[k];
+				node.children[j] = &mNodes[k];
 			}
 			else
 			{
-				node.children[j] = (mnode_s*)&m_Leafs[(uint32_t)(-1 - k)];
+				node.children[j] = (mnode_s*)&mLeafs[(uint32_t)(-1 - k)];
 			}
 		}
 	}
 
 	// texinfos
 
-	m_TexInfos.resize(header.lumps[LUMP_TEXINFO].filelen / sizeof(texinfo_t));
+	mTexInfos.resize(header.lumps[LUMP_TEXINFO].filelen / sizeof(texinfo_t));
 	bf.setPosition(header.lumps[LUMP_TEXINFO].fileofs);
-	bf.read(m_TexInfos.data(), header.lumps[LUMP_TEXINFO].filelen);
+	bf.read(mTexInfos.data(), header.lumps[LUMP_TEXINFO].filelen);
 
 	// lighting
 
-	m_LightData.resize(header.lumps[LUMP_LIGHTING].filelen);
+	mLightData.resize(header.lumps[LUMP_LIGHTING].filelen);
 	bf.setPosition(header.lumps[LUMP_LIGHTING].fileofs);
-	bf.read(m_LightData.data(), header.lumps[LUMP_LIGHTING].filelen);
+	bf.read(mLightData.data(), header.lumps[LUMP_LIGHTING].filelen);
 
 	// models
 
-	m_Models.resize(header.lumps[LUMP_MODELS].filelen / sizeof(dmodel_t));
+	mModels.resize(header.lumps[LUMP_MODELS].filelen / sizeof(dmodel_t));
 	bf.setPosition(header.lumps[LUMP_MODELS].fileofs);
-	bf.read(m_Models.data(), header.lumps[LUMP_MODELS].filelen);
+	bf.read(mModels.data(), header.lumps[LUMP_MODELS].filelen);
 
 	// textures
 
@@ -177,7 +177,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 			auto mt = (miptex_t*)((char*)m + m->dataofs[i]);
 
-			m_Textures.push_back(*mt);
+			mTextures.push_back(*mt);
 
 			//std::cout << "Name: " << mt->name << ", Width: " << mt->width 
 			//	<< ", Height: " << mt->height << std::endl;
@@ -217,7 +217,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 				e.args.push_back({ key, value });
 			}
 
-			m_Entities.push_back(e);
+			mEntities.push_back(e);
 
 			entities = entities.substr(entities.find("}") + 1);
 		}
@@ -252,14 +252,14 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 			wadfile->loadFromFile(filename);
 
-			m_WADFiles.push_back(wadfile);
+			mWADFiles.push_back(wadfile);
 		}
 	}
 
 	makeHull0();
 		
 	// set up the submodels (FIXME: this is confusing)
-	for (int i = 0; i < m_Models.size(); i++)
+	for (int i = 0; i < mModels.size(); i++)
 	{
 		//auto bm = &m_Models[i];
 
@@ -297,7 +297,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 			loadmodel->name[sizeof(loadmodel->name) - 1] = 0;
 			mod = loadmodel;
 		}*/
-		mModelsMap.insert({ fmt::format("*{}", i + 1), &m_Models.at(i) });
+		mModelsMap.insert({ fmt::format("*{}", i + 1), &mModels.at(i) });
 	}
 }
 
@@ -305,7 +305,7 @@ std::vector<BSPFile::Entity*> BSPFile::findEntity(std::string_view className)
 {
 	std::vector<BSPFile::Entity*> result = { };
 
-	for (auto& entity : m_Entities)
+	for (auto& entity : mEntities)
 	{
 		if (*entity.getValueOf("classname") != className)
 			continue;
@@ -324,18 +324,18 @@ void BSPFile::makeHull0()
 	
 	auto& hull = m_Hulls[0];
 
-	in = m_Nodes.data();
-	count = (int)m_Nodes.size();
+	in = mNodes.data();
+	count = (int)mNodes.size();
 	out = (dclipnode_t *)malloc(count * sizeof(*out));//(dclipnode_t *)Mem_ZeroMalloc(count * sizeof(*out));
 
 	hull.clipnodes = out;
 	hull.firstclipnode = 0;
 	hull.lastclipnode = count - 1;
-	hull.planes = m_Planes.data();
+	hull.planes = mPlanes.data();
 
 	for (i = 0; i < count; i++, out++, in++)
 	{
-		out->planenum = in->plane - m_Planes.data();
+		out->planenum = in->plane - mPlanes.data();
 		for (j = 0; j < 2; j++)
 		{
 			child = in->children[j];
@@ -343,7 +343,7 @@ void BSPFile::makeHull0()
 			if (child->contents < 0)
 				out->children[j] = child->contents;
 			else
-				out->children[j] = child - m_Nodes.data();
+				out->children[j] = child - mNodes.data();
 		}
 	}
 }
@@ -361,7 +361,7 @@ trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, bool mo
 	
 	if (models)
 	{
-		for (auto& model : m_Models)
+		for (auto& model : mModels)
 		{
 			trace_t trace;
 

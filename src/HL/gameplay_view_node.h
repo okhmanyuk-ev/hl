@@ -62,6 +62,7 @@ namespace HL
 		float worldToScreenAngles(const glm::vec3& value) const;
 		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 		std::string getNiceModelName(const HL::Protocol::Resource& model) const;
+		std::string getShortMapName() const;
 
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
