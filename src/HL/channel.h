@@ -76,10 +76,13 @@ namespace HL
 		int mReliableSent = 0;
 
 		Common::Timer mTimer;
-
-	private:
 		std::list<BitBuffer> mReliableMessages;
 
+	public:
+		const auto& getNormalFragBuffers() const { return mNormalFragBuffers; }
+		const auto& getFileFragBuffers() const { return mFileFragBuffers; }
+
+	public:
 		struct Fragment
 		{
 			BitBuffer buffer;
@@ -92,6 +95,7 @@ namespace HL
 			std::vector<Fragment> frags;
 		};
 
+	private:
 		std::map</*index*/int32_t, std::shared_ptr<FragBuffer>> mNormalFragBuffers;
 		std::map</*index*/int32_t, std::shared_ptr<FragBuffer>> mFileFragBuffers;
 

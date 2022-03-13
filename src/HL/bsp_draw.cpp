@@ -31,13 +31,10 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 
 			auto v = Vertex();
 
+			auto gray = glm::linearRand(0.5f, 1.0f);
+
 			v.pos = vertex;
-			v.col = {
-				glm::linearRand(0.0f, 1.0f),
-				glm::linearRand(0.0f, 1.0f),
-				glm::linearRand(0.0f, 1.0f),
-				1.0f
-			};
+			v.col = { gray, gray, gray, 1.0f };
 
 			//v.normal = *(glm::vec3*)(&plane.normal);
 
@@ -86,6 +83,7 @@ void BspDraw::draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::ve
 
 	auto view = mCamera->getViewMatrix();
 	auto projection = mCamera->getProjectionMatrix();
+	auto prev_batching = GRAPHICS->isBatching();
 
 	GRAPHICS->setBatching(false);
 	GRAPHICS->pushCleanState();
@@ -114,5 +112,5 @@ void BspDraw::draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::ve
 
 	GRAPHICS->draw(Renderer::Topology::TriangleList, vertices, count);
 	GRAPHICS->pop(6);
-	GRAPHICS->setBatching(true);
+	GRAPHICS->setBatching(prev_batching);
 }

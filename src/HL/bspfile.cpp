@@ -408,8 +408,8 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 		assert(num <= hull.lastclipnode);
 		assert(hull.planes);
 
-		auto& node = hull.clipnodes[num];
-		auto& plane = hull.planes[node.planenum];
+		const auto& node = hull.clipnodes[num];
+		const auto& plane = hull.planes[node.planenum];
 	
 		float t1 = 0.0f;
 		float t2 = 0.0f;

@@ -255,8 +255,13 @@ void GameplayViewNode::draw()
 	}
 	IMSCENE->setupPreKillAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
-	drawEntities(*background);
-	drawPlayers(*background);
+	drawOnBackground(*background);
+}
+
+void GameplayViewNode::drawOnBackground(Scene::Node& holder)
+{
+	drawEntities(holder);
+	drawPlayers(holder);
 }
 
 void GameplayViewNode::drawEntities(Scene::Node& holder)

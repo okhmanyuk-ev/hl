@@ -46,6 +46,9 @@ namespace HL
 	public:
 		void draw() override;
 
+	protected:
+		virtual void drawOnBackground(Scene::Node& holder);
+
 	private:
 		void drawEntities(Scene::Node& holder);
 		void drawPlayers(Scene::Node& holder);
