@@ -1616,14 +1616,8 @@ void BaseClient::onReconnect(CON_ARGS)
 		LOG("cannot reconnect, not connected");
 		return;
 	}
-	mEntities.clear();
+	resetGameResources();
 	mState = State::Connected;
-	mServerInfo.reset();
-	mResources.clear();
-	mEntities.clear();
-	mDeltaEntities.clear();
-	mBaselines.clear();
-	mExtraBaselines.clear();
 	sendCommand("new");
 }
 
@@ -1774,17 +1768,13 @@ void BaseClient::disconnect(const std::string& reason)
 	mTime = 0.0f;
 	m_LightStyles.clear();
 	m_WeaponData.clear();
-	mResources.clear();
-	mEntities.clear();
-	mDeltaEntities.clear();
-	mBaselines.clear();
-	mExtraBaselines.clear();
 	mSignonNum = 0;
 	mDeltaSequence = 0;
-	mServerInfo.reset();
 	mMoveVars.reset();
 	mGameMod.reset();
 	mInitializeConnectionTime.reset();
+
+	resetGameResources();
 
 	LOG("disconnected, reason: \"" + reason + "\"");
 
@@ -1861,4 +1851,14 @@ void BaseClient::initializeGame()
 
 	mState = State::GameStarted;
 
+}
+
+void BaseClient::resetGameResources()
+{
+	mEntities.clear();
+	mServerInfo.reset();
+	mResources.clear();
+	mDeltaEntities.clear();
+	mBaselines.clear();
+	mExtraBaselines.clear();
 }

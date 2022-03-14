@@ -193,6 +193,7 @@ namespace HL
 	protected:
 		virtual void initializeGameEngine();
 		virtual void initializeGame();
+		virtual void resetGameResources();
 
 	public:
 		void sendCommand(const std::string& command);
