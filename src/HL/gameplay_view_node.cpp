@@ -245,7 +245,6 @@ void GameplayViewNode::draw()
 
 	auto background = IMSCENE->attachTemporaryNode<Scene::Sprite>(*this);
 	background->setStretch(1.0f);
-	background->setPivot(0.5f);
 	background->setAnchor(0.5f);
 	background->setTexture(texture);
 	if (IMSCENE->nodeWasInitialized())
@@ -254,6 +253,22 @@ void GameplayViewNode::draw()
 		background->runAction(Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut));
 	}
 	IMSCENE->setupPreKillAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
+
+	auto dTime = FRAME->getTimeDelta();
+
+	if (mFollowingBackground)
+	{
+		auto my_pos = worldToScreen(mClient->getClientData().origin);
+		background->setOrigin(Common::Helpers::SmoothValueAssign(background->getOrigin(), my_pos, dTime));
+		background->setPivot(Common::Helpers::SmoothValueAssign(background->getPivot(), { 0.0f, 0.0f }, dTime));
+	}
+	else
+	{
+		background->setPivot(Common::Helpers::SmoothValueAssign(background->getPivot(), { 0.5f, 0.5f }, dTime));
+		background->setOrigin(Common::Helpers::SmoothValueAssign(background->getOrigin(), { 0.0f, 0.0f }, dTime));
+	}
+
+	mBackground = background;
 
 	drawOnBackground(*background);
 }

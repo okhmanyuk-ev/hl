@@ -65,9 +65,15 @@ namespace HL
 		float worldToScreenAngles(const glm::vec3& value) const;
 		std::string getNiceModelName(const HL::Protocol::Resource& model) const;
 		std::string getShortMapName() const;
+		auto getBackgroundNode() const { return mBackground; }
+
+		auto getFollowingBackground() const { return mFollowingBackground; }
+		void setFollowingBackground(bool value) { mFollowingBackground = value; }
 
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
 		std::optional<OverviewInfo> mOverviewInfo;
+		std::weak_ptr<Scene::Node> mBackground;
+		bool mFollowingBackground = false;
 	};
 }
