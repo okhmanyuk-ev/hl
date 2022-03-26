@@ -200,6 +200,7 @@ namespace HL
 		void connect(const Network::Address& address);
 		void disconnect(const std::string& reason);
 		bool isPlayerIndex(int value) const;
+		std::optional<HL::Protocol::Resource> findModel(int model_index) const;
 
 	private: // userinfos
 		std::string mUserInfoDLMax = "512";

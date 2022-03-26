@@ -1798,6 +1798,18 @@ bool BaseClient::isPlayerIndex(int value) const
 	return value >= 1 && value <= max_players;
 }
 
+std::optional<HL::Protocol::Resource> BaseClient::findModel(int model_index) const
+{
+	auto result = std::find_if(mResources.cbegin(), mResources.cend(), [model_index](const auto& res) {
+		return res.index == model_index && res.type == HL::Protocol::Resource::Type::Model;
+	});
+
+	if (result == mResources.cend())
+		return std::nullopt;
+	else
+		return *result;
+}
+
 void BaseClient::addUserInfo(const std::string& name, const std::string& description,
 	Console::CVar::Getter getter, Console::CVar::Setter setter)
 {

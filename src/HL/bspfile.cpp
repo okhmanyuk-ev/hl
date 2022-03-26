@@ -348,7 +348,7 @@ void BSPFile::makeHull0()
 	}
 }
 
-trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, bool models) const
+trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, const std::vector<int>& model_indices) const
 {
 	trace_t result;
 	
@@ -358,28 +358,16 @@ trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, bool mo
 	result.startsolid = false;
 
 	bool b = recursiveHullCheck(m_Hulls[0], m_Hulls[0].firstclipnode, 0.0f, 1.0f, start, end, result);
-	
-	if (models)
-	{
-		for (auto& model : mModels)
-		{
-			trace_t trace;
 
-			trace.fraction = 1.0f;
-			trace.endpos = end;
-			trace.allsolid = true;
-			trace.startsolid = false;
+	if (!result.startsolid && !result.allsolid)
+	{
+		for (auto index : model_indices)
+		{
+			auto trace = result;
+
+			const auto& model = mModels.at(index);
 
 			recursiveHullCheck(m_Hulls[0], model.headnode[0], 0.0f, 1.0f, start, end, trace);
-
-			/*if (trace.allsolid)
-				trace.startsolid = true;
-
-			if (trace.startsolid)
-			{
-				trace.fraction = 0.0f;
-				trace.endpos = start;
-			}*/
 
 			if (trace.fraction < result.fraction)
 				result = trace;
@@ -485,7 +473,9 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 	}
 
 	if (num == CONTENTS_SOLID)
+	{
 		trace.startsolid = true;
+	}
 	else
 	{
 		trace.allsolid = false;

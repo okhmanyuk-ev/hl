@@ -146,7 +146,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	});
 
 	mClient->setGlowSpriteCallback([this](const glm::vec3& origin, int model_index) {
-		auto model = findModel(model_index);
+		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
 		label->setText(model.value().name);
@@ -166,7 +166,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	});
 
 	mClient->setSpriteCallback([this](const glm::vec3& origin, int model_index) {
-		auto model = findModel(model_index);
+		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
 		label->setText(model.value().name);
@@ -186,7 +186,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	});
 
 	mClient->setSmokeCallback([this](const glm::vec3& origin, int model_index) {
-		auto model = findModel(model_index);
+		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
 		label->setText(model.value().name);
@@ -206,7 +206,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 	});
 
 	mClient->setExplosionCallback([this](const glm::vec3& origin, int model_index) {
-		auto model = findModel(model_index);
+		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
 		label->setText(model.value().name);
@@ -274,7 +274,7 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		if (mClient->isPlayerIndex(index))
 			continue;
 
-		auto model = findModel(entity->modelindex);
+		auto model = mClient->findModel(entity->modelindex);
 
 		if (!model.has_value())
 			continue;
@@ -358,7 +358,7 @@ void GameplayViewNode::drawPlayers(Scene::Node& holder)
 
 		if (entity != nullptr)
 		{
-			auto weapon_model = findModel(entity->weaponmodel);
+			auto weapon_model = mClient->findModel(entity->weaponmodel);
 			if (weapon_model.has_value())
 			{
 				labels.push_back({ "weapon", getNiceModelName(weapon_model.value()) });
@@ -491,23 +491,9 @@ float GameplayViewNode::worldToScreenAngles(const glm::vec3& value) const
 	return result;
 }
 
-std::optional<HL::Protocol::Resource> GameplayViewNode::findModel(int model_index) const
-{
-	const auto& resources = mClient->getResources();
-
-	auto result = std::find_if(resources.cbegin(), resources.cend(), [model_index](const auto& res) {
-		return res.index == model_index && res.type == HL::Protocol::Resource::Type::Model;
-	});
-
-	if (result == resources.cend())
-		return std::nullopt;
-	else
-		return *result;
-}
-
 std::string GameplayViewNode::getNiceModelName(const HL::Protocol::Resource& model) const
 {
-	if (model.name.substr(0, 1) == "*")
+	if (model.name.starts_with("*"))
 		return model.name;
 
 	auto path = std::filesystem::path(model.name);
