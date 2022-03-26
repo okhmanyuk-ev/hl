@@ -5,7 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
-
+#include <set>
 #include "wadfile.h"
 
 #include <glm/glm.hpp>
@@ -258,11 +258,13 @@ public:
 
 	void makeHull0();
 
-	trace_t traceLine(const glm::vec3& start, const glm::vec3& end, const std::vector<int>& model_indices = {}) const;
+	trace_t traceLine(const glm::vec3& start, const glm::vec3& end, const std::set<int>& models = {}) const;
 	bool recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace) const;
 	int hullPointContents(const hull_t& hull, int num, const glm::vec3& point) const;
 
 	const auto& getModelsMap() const { return mModelsMap; }
+
+	void setModelOrigin(int index, const glm::vec3& origin);
 
 private:
 	std::vector<BspVertex> mVertices;

@@ -348,10 +348,9 @@ void BSPFile::makeHull0()
 	}
 }
 
-trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, const std::vector<int>& model_indices) const
+trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, const std::set<int>& models) const
 {
 	trace_t result;
-	
 	result.fraction = 1.0f;
 	result.endpos = end;
 	result.allsolid = true;
@@ -361,13 +360,18 @@ trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, const s
 
 	if (!result.startsolid && !result.allsolid)
 	{
-		for (auto index : model_indices)
+		for (const auto& index : models)
 		{
 			auto trace = result;
 
-			const auto& model = mModels.at(index);
+			auto& model = mModels.at(index);
 
-			recursiveHullCheck(m_Hulls[0], model.headnode[0], 0.0f, 1.0f, start, end, trace);
+			auto model_start = start - model.origin;
+			auto model_end = end - model.origin;
+
+			recursiveHullCheck(m_Hulls[0], model.headnode[0], 0.0f, 1.0f, model_start, model_end, trace);
+
+			trace.endpos += model.origin;
 
 			if (trace.fraction < result.fraction)
 				result = trace;
@@ -510,4 +514,9 @@ int BSPFile::hullPointContents(const hull_t& hull, int num, const glm::vec3& poi
 	}
 	
 	return num;
+}
+
+void BSPFile::setModelOrigin(int index, const glm::vec3& origin)
+{
+	mModels[index].origin = origin;
 }
