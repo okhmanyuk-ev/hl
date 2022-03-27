@@ -243,29 +243,33 @@ void GameplayViewNode::draw()
 	if (texture == nullptr)
 		return;
 
-	auto background = IMSCENE->attachTemporaryNode<Scene::Sprite>(*this);
+	auto background = IMSCENE->spawn<Shared::SceneHelpers::Smoother<Scene::Sprite>>(*this);
 	background->setStretch(1.0f);
 	background->setAnchor(0.5f);
 	background->setTexture(texture);
-	if (IMSCENE->nodeWasInitialized())
-	{
-		background->setScale(0.0f);
-		background->runAction(Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut));
-	}
-	IMSCENE->destroyAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
-	auto dTime = FRAME->getTimeDelta();
+	if (IMSCENE->nodeJustSpawned())
+		background->setScale(0.0f);
+	else
+		background->setScale(1.0f);
+
+	IMSCENE->destroyAction(background, Actions::Collection::MakeSequence(
+		Actions::Collection::Execute([background] {
+			background->setSmoothTransform(false);
+		}),
+		Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.25f, Easing::CubicIn)
+	));
 
 	if (mFollowingBackground)
 	{
 		auto my_pos = worldToScreen(mClient->getClientData().origin);
-		background->setOrigin(Common::Helpers::SmoothValueAssign(background->getOrigin(), my_pos, dTime));
-		background->setPivot(Common::Helpers::SmoothValueAssign(background->getPivot(), { 0.0f, 0.0f }, dTime));
+		background->setOrigin(my_pos);
+		background->setPivot(0.0f);
 	}
 	else
 	{
-		background->setOrigin(Common::Helpers::SmoothValueAssign(background->getOrigin(), { 0.0f, 0.0f }, dTime));
-		background->setPivot(Common::Helpers::SmoothValueAssign(background->getPivot(), { 0.5f, 0.5f }, dTime));
+		background->setOrigin(0.0f);
+		background->setPivot(0.5f);
 	}
 
 	mBackground = background;
@@ -304,19 +308,19 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 
 		auto rotation = worldToScreenAngles(entity->angles);
 
-		auto node = IMSCENE->attachTemporaryNode(holder, fmt::format("player_{}", index));
+		auto node = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 		node->setSize(4.0f);
 		node->setPivot(0.5f);
-		node->setPosition(IMSCENE->nodeWasInitialized() ? origin_scr : Common::Helpers::SmoothValueAssign(node->getPosition(), origin_scr, dTime));
+		node->setPosition(IMSCENE->nodeJustSpawned() ? origin_scr : Common::Helpers::SmoothValueAssign(node->getPosition(), origin_scr, dTime));
 
-		auto body = IMSCENE->attachTemporaryNode<Scene::Rectangle>(*node);
+		auto body = IMSCENE->spawn<Scene::Rectangle>(*node);
 		body->setRotation(rotation);
 		body->setStretch(1.0f);
 		body->setPivot(0.5f);
 		body->setAnchor(0.5f);
 		body->setColor(Graphics::Color::Yellow);
 
-		auto label = IMSCENE->attachTemporaryNode<Scene::Label>(*node);
+		auto label = IMSCENE->spawn<Scene::Label>(*node);
 		label->setPivot(0.5f);
 		label->setAnchor({ 0.5f, 0.0f });
 		label->setY(-10.0f);
@@ -399,23 +403,23 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	const float SpawnDuration = 0.5f;
 	const float KillDuration = 0.5f;
 
-	auto player = IMSCENE->attachTemporaryNode(holder, fmt::format("player_{}", index));
+	auto player = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
-	player->setPosition(IMSCENE->nodeWasInitialized() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
-	IMSCENE->destroyAction(player, Actions::Collection::Wait(KillDuration)); // wait until childs die
+	player->setPosition(IMSCENE->nodeJustSpawned() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
+	IMSCENE->dontKillUntilHaveChilds(player);
 
-	auto body = IMSCENE->attachTemporaryNode<Scene::Circle>(*player);
+	auto body = IMSCENE->spawn<Scene::Circle>(*player);
 	if (angles.has_value())
 	{
 		auto rotation = worldToScreenAngles(angles.value());
-		body->setRotation(IMSCENE->nodeWasInitialized() ? rotation : Common::Helpers::SmoothRotationAssign(body->getRotation(), rotation, dTime));
+		body->setRotation(IMSCENE->nodeJustSpawned() ? rotation : Common::Helpers::SmoothRotationAssign(body->getRotation(), rotation, dTime));
 	}
 	body->setStretch(1.0f);
 	body->setPivot(0.5f);
 	body->setAnchor(0.5f);
 	body->setColor(color);
-	if (IMSCENE->nodeWasInitialized())
+	if (IMSCENE->nodeJustSpawned())
 	{
 		body->setScale(0.0f);
 		body->runAction(Actions::Collection::ChangeScale(body, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
@@ -424,12 +428,12 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 
 	if (angles.has_value())
 	{
-		auto arrow = IMSCENE->attachTemporaryNode<Scene::Rectangle>(*body);
+		auto arrow = IMSCENE->spawn<Scene::Rectangle>(*body);
 		arrow->setSize({ 1.0f, 4.0f });
 		arrow->setPivot({ 0.5f, 1.0f });
 		arrow->setAnchor({ 0.5f, 0.0f });
 		arrow->setColor(color);
-		IMSCENE->destroyAction(player, Actions::Collection::Wait(KillDuration)); // wait until parent die
+		IMSCENE->dontKill(player);
 	}
 
 	float y = -2.0f;
@@ -437,14 +441,14 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	for (const auto& [key, text] : labels)
 	{
 		y -= 10.0f;
-		auto label = IMSCENE->attachTemporaryNode<Scene::Label>(*player, key);
+		auto label = IMSCENE->spawn<Scene::Label>(*player, key);
 		label->setPivot(0.5f);
 		label->setAnchor({ 0.5f, 0.0f });
-		label->setY(IMSCENE->nodeWasInitialized() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
+		label->setY(IMSCENE->nodeJustSpawned() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
 		label->setFontSize(10.0f);
 		label->setText(text);
 		IMSCENE->destroyAction(label, Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
-		if (IMSCENE->nodeWasInitialized())
+		if (IMSCENE->nodeJustSpawned())
 		{
 			label->setScale(0.0f);
 			label->runAction(Actions::Collection::ChangeScale(label, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
