@@ -252,7 +252,7 @@ void GameplayViewNode::draw()
 		background->setScale(0.0f);
 		background->runAction(Actions::Collection::ChangeScale(background, { 1.0f, 1.0f }, 0.5f, Easing::BackOut));
 	}
-	IMSCENE->setupPreKillAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
+	IMSCENE->destroyAction(background, Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.5f, Easing::BackIn));
 
 	auto dTime = FRAME->getTimeDelta();
 
@@ -403,7 +403,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
 	player->setPosition(IMSCENE->nodeWasInitialized() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
-	IMSCENE->setupPreKillAction(player, Actions::Collection::Wait(KillDuration)); // wait until childs die
+	IMSCENE->destroyAction(player, Actions::Collection::Wait(KillDuration)); // wait until childs die
 
 	auto body = IMSCENE->attachTemporaryNode<Scene::Circle>(*player);
 	if (angles.has_value())
@@ -420,7 +420,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		body->setScale(0.0f);
 		body->runAction(Actions::Collection::ChangeScale(body, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
 	}
-	IMSCENE->setupPreKillAction(body, Actions::Collection::ChangeScale(body, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
+	IMSCENE->destroyAction(body, Actions::Collection::ChangeScale(body, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
 
 	if (angles.has_value())
 	{
@@ -429,7 +429,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		arrow->setPivot({ 0.5f, 1.0f });
 		arrow->setAnchor({ 0.5f, 0.0f });
 		arrow->setColor(color);
-		IMSCENE->setupPreKillAction(player, Actions::Collection::Wait(KillDuration)); // wait until parent die
+		IMSCENE->destroyAction(player, Actions::Collection::Wait(KillDuration)); // wait until parent die
 	}
 
 	float y = -2.0f;
@@ -443,7 +443,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		label->setY(IMSCENE->nodeWasInitialized() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
 		label->setFontSize(10.0f);
 		label->setText(text);
-		IMSCENE->setupPreKillAction(label, Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
+		IMSCENE->destroyAction(label, Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
 		if (IMSCENE->nodeWasInitialized())
 		{
 			label->setScale(0.0f);
