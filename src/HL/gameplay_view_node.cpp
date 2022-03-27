@@ -106,7 +106,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		node->runAction(Actions::Collection::Delayed((float)lifetime / 10.0f,
 			Actions::Collection::Kill(node)
 		));
-		mBackground.lock()->attach(node);
+		mBackground->attach(node);
 	});
 
 	mClient->setBloodSpriteCallback([this](const glm::vec3& origin) {
@@ -124,7 +124,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 
 	mClient->setSparksCallback([this](const glm::vec3& origin) {
@@ -142,7 +142,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 
 	mClient->setGlowSpriteCallback([this](const glm::vec3& origin, int model_index) {
@@ -162,7 +162,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 
 	mClient->setSpriteCallback([this](const glm::vec3& origin, int model_index) {
@@ -182,7 +182,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 
 	mClient->setSmokeCallback([this](const glm::vec3& origin, int model_index) {
@@ -202,7 +202,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 
 	mClient->setExplosionCallback([this](const glm::vec3& origin, int model_index) {
@@ -222,7 +222,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 			Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, 0.5f, Easing::CubicInOut),
 			Actions::Collection::Kill(label)
 		));
-		mBackground.lock()->attach(label);
+		mBackground->attach(label);
 	});
 }
 
@@ -242,7 +242,7 @@ void GameplayViewNode::draw()
 
 	if (texture == nullptr)
 		return;
-
+	
 	auto background = IMSCENE->spawn<Shared::SceneHelpers::Smoother<Scene::Sprite>>(*this);
 	background->setStretch(1.0f);
 	background->setAnchor(0.5f);
@@ -251,7 +251,7 @@ void GameplayViewNode::draw()
 	if (IMSCENE->nodeJustSpawned())
 		background->setScale(0.0f);
 	else
-		background->setScale(1.0f);
+		background->setScale(mBackgroundZoom);
 
 	IMSCENE->destroyAction(background, Actions::Collection::MakeSequence(
 		Actions::Collection::Execute([background] {
@@ -260,21 +260,21 @@ void GameplayViewNode::draw()
 		Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.25f, Easing::CubicIn)
 	));
 
-	if (mFollowingBackground)
+	mBackground = background;
+
+	if (mCenterized)
 	{
 		auto my_pos = worldToScreen(mClient->getClientData().origin);
-		background->setOrigin(my_pos);
-		background->setPivot(0.0f);
+		mBackground->setOrigin(my_pos);
+		mBackground->setPivot(0.0f);
 	}
 	else
 	{
-		background->setOrigin(0.0f);
-		background->setPivot(0.5f);
+		mBackground->setOrigin(0.0f);
+		mBackground->setPivot(0.5f);
 	}
 
-	mBackground = background;
-
-	drawOnBackground(*background);
+	drawOnBackground(*mBackground);
 }
 
 void GameplayViewNode::drawOnBackground(Scene::Node& holder)
