@@ -243,22 +243,11 @@ void GameplayViewNode::draw()
 	if (texture == nullptr)
 		return;
 	
-	auto background = IMSCENE->spawn<Shared::SceneHelpers::Smoother<Scene::Sprite>>(*this);
+	auto background = IMSCENE->spawn<Scene::Sprite>(*this);
 	background->setStretch(1.0f);
 	background->setAnchor(0.5f);
 	background->setTexture(texture);
-
-	if (IMSCENE->justAllocated())
-		background->setScale(0.0f);
-	else
-		background->setScale(mBackgroundZoom);
-
-	IMSCENE->destroyAction(Actions::Collection::MakeSequence(
-		Actions::Collection::Execute([background] {
-			background->setSmoothTransform(false);
-		}),
-		Actions::Collection::ChangeScale(background, { 0.0f, 0.0f }, 0.25f, Easing::CubicIn)
-	));
+	IMSCENE->showAndHideWithScale();
 
 	mBackground = background;
 
@@ -267,11 +256,13 @@ void GameplayViewNode::draw()
 		auto my_pos = worldToScreen(mClient->getClientData().origin);
 		mBackground->setOrigin(my_pos);
 		mBackground->setPivot(0.0f);
+	//	background->setScale(1.5f);
 	}
 	else
 	{
 		mBackground->setOrigin(0.0f);
 		mBackground->setPivot(0.5f);
+	//	background->setScale(1.0f);
 	}
 
 	drawOnBackground(*mBackground);

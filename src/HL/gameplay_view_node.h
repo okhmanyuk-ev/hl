@@ -70,14 +70,10 @@ namespace HL
 		auto isCenterized() const { return mCenterized; }
 		void setCenterized(bool value) { mCenterized = value; }
 
-		auto getBackgroundZoom() const { return mBackgroundZoom; }
-		void setBackgroundZoom(float value) { mBackgroundZoom = value; }
-
 	private:
 		std::shared_ptr<BaseClient> mClient = nullptr; // TODO: weak_ptr ?
 		std::optional<OverviewInfo> mOverviewInfo;
 		std::shared_ptr<Scene::Node> mBackground;
 		bool mCenterized = false;
-		float mBackgroundZoom = 1.0f;
 	};
 }
