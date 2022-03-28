@@ -248,12 +248,12 @@ void GameplayViewNode::draw()
 	background->setAnchor(0.5f);
 	background->setTexture(texture);
 
-	if (IMSCENE->nodeJustSpawned())
+	if (IMSCENE->justAllocated())
 		background->setScale(0.0f);
 	else
 		background->setScale(mBackgroundZoom);
 
-	IMSCENE->destroyAction(background, Actions::Collection::MakeSequence(
+	IMSCENE->destroyAction(Actions::Collection::MakeSequence(
 		Actions::Collection::Execute([background] {
 			background->setSmoothTransform(false);
 		}),
@@ -311,7 +311,8 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		auto node = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 		node->setSize(4.0f);
 		node->setPivot(0.5f);
-		node->setPosition(IMSCENE->nodeJustSpawned() ? origin_scr : Common::Helpers::SmoothValueAssign(node->getPosition(), origin_scr, dTime));
+		node->setPosition(IMSCENE->justAllocated() ? origin_scr : Common::Helpers::SmoothValueAssign(node->getPosition(), origin_scr, dTime));
+		IMSCENE->dontKillUntilHaveChilds();
 
 		auto body = IMSCENE->spawn<Scene::Rectangle>(*node);
 		body->setRotation(rotation);
@@ -319,6 +320,7 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		body->setPivot(0.5f);
 		body->setAnchor(0.5f);
 		body->setColor(Graphics::Color::Yellow);
+		IMSCENE->showAndHideWithScale();
 
 		auto label = IMSCENE->spawn<Scene::Label>(*node);
 		label->setPivot(0.5f);
@@ -326,6 +328,7 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		label->setY(-10.0f);
 		label->setFontSize(8.0f);
 		label->setText(getNiceModelName(model.value()));
+		IMSCENE->showAndHideWithScale();
 	}
 }
 
@@ -400,31 +403,23 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	auto pos = worldToScreen(origin);
 	const auto dTime = FRAME->getTimeDelta();
 
-	const float SpawnDuration = 0.5f;
-	const float KillDuration = 0.5f;
-
 	auto player = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
-	player->setPosition(IMSCENE->nodeJustSpawned() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
-	IMSCENE->dontKillUntilHaveChilds(player);
+	player->setPosition(IMSCENE->justAllocated() ? pos : Common::Helpers::SmoothValueAssign(player->getPosition(), pos, dTime));
+	IMSCENE->dontKillUntilHaveChilds();
 
 	auto body = IMSCENE->spawn<Scene::Circle>(*player);
 	if (angles.has_value())
 	{
 		auto rotation = worldToScreenAngles(angles.value());
-		body->setRotation(IMSCENE->nodeJustSpawned() ? rotation : Common::Helpers::SmoothRotationAssign(body->getRotation(), rotation, dTime));
+		body->setRotation(IMSCENE->justAllocated() ? rotation : Common::Helpers::SmoothRotationAssign(body->getRotation(), rotation, dTime));
 	}
 	body->setStretch(1.0f);
 	body->setPivot(0.5f);
 	body->setAnchor(0.5f);
 	body->setColor(color);
-	if (IMSCENE->nodeJustSpawned())
-	{
-		body->setScale(0.0f);
-		body->runAction(Actions::Collection::ChangeScale(body, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
-	}
-	IMSCENE->destroyAction(body, Actions::Collection::ChangeScale(body, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
+	IMSCENE->showAndHideWithScale();
 
 	if (angles.has_value())
 	{
@@ -433,7 +428,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		arrow->setPivot({ 0.5f, 1.0f });
 		arrow->setAnchor({ 0.5f, 0.0f });
 		arrow->setColor(color);
-		IMSCENE->dontKill(player);
+		IMSCENE->dontKill();
 	}
 
 	float y = -2.0f;
@@ -444,15 +439,10 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		auto label = IMSCENE->spawn<Scene::Label>(*player, key);
 		label->setPivot(0.5f);
 		label->setAnchor({ 0.5f, 0.0f });
-		label->setY(IMSCENE->nodeJustSpawned() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
+		label->setY(IMSCENE->justAllocated() ? y : Common::Helpers::SmoothValueAssign(label->getY(), y, dTime));
 		label->setFontSize(10.0f);
 		label->setText(text);
-		IMSCENE->destroyAction(label, Actions::Collection::ChangeScale(label, { 0.0f, 0.0f }, KillDuration, Easing::BackIn));
-		if (IMSCENE->nodeJustSpawned())
-		{
-			label->setScale(0.0f);
-			label->runAction(Actions::Collection::ChangeScale(label, { 1.0f, 1.0f }, SpawnDuration, Easing::BackOut));
-		}
+		IMSCENE->showAndHideWithScale();
 	}
 }
 
