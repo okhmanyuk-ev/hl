@@ -56,7 +56,7 @@ namespace HL
 			const glm::vec3& color, const std::vector<std::pair<std::string, std::string>>& labels);
 
 	private:
-		std::shared_ptr<Renderer::Texture> getCurrentMapTexture() const;
+		std::shared_ptr<skygfx::Texture> getCurrentMapTexture() const;
 		void ensureOverviewInfoLoaded();
 
 	public:

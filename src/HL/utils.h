@@ -4,9 +4,11 @@
 #include <console/device.h>
 #include <console/system.h>
 #include <platform/defines.h>
-#if !defined(PLATFORM_IOS)
-#include <source_location>
+
+#if !defined(PLATFORM_IOS) && !defined(PLATFORM_MAC)
+	#include <source_location>
 #endif
+
 #include <utility>
 
 #if defined(PLATFORM_IOS)
@@ -26,7 +28,7 @@ namespace HL::Utils
 	template <typename... Args>
 	struct dlog
 	{
-#if defined(PLATFORM_IOS)
+#if defined(PLATFORM_IOS) || defined(PLATFORM_MAC)
         dlog(std::string text, Args&&... args)
         {
             if (CONSOLE->getCVars().at("dlogs").getGetter()().at(0) != "1")

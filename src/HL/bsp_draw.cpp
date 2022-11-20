@@ -34,7 +34,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			auto gray = glm::linearRand(0.5f, 1.0f);
 
 			v.pos = vertex;
-			v.col = { gray, gray, gray, 1.0f };
+			v.color = { gray, gray, gray, 1.0f };
 
 			//v.normal = *(glm::vec3*)(&plane.normal);
 
@@ -74,7 +74,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 	}
 }
 
-void BspDraw::draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::vec3& pos, const glm::vec3& angles)
+void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, const glm::vec3& angles)
 {
 	mCamera->setPosition(pos);
 	mCamera->setYaw(glm::radians(angles.x));
@@ -90,9 +90,8 @@ void BspDraw::draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::ve
 	GRAPHICS->pushViewMatrix(view);
 	GRAPHICS->pushProjectionMatrix(projection);
 	GRAPHICS->pushRenderTarget(target);
-	GRAPHICS->pushViewport(target);
-	GRAPHICS->pushDepthMode(Renderer::ComparisonFunc::Less);
-	GRAPHICS->clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+	GRAPHICS->pushDepthMode(skygfx::ComparisonFunc::Less);
+	GRAPHICS->clear(glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 	
 	static auto builder = Graphics::MeshBuilder();
 	builder.begin();
@@ -103,14 +102,14 @@ void BspDraw::draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::ve
 		{
 			const auto& vertex = mVertices.at(i);
 
-			builder.color(vertex.col);
+			builder.color(vertex.color);
 			builder.vertex(vertex.pos);
 		}
 	}
 
 	auto [vertices, count] = builder.end();
 
-	GRAPHICS->draw(Renderer::Topology::TriangleList, vertices, count);
+	GRAPHICS->draw(skygfx::Topology::TriangleList, vertices, count);
 	GRAPHICS->pop(6);
 	GRAPHICS->setBatching(prev_batching);
 }

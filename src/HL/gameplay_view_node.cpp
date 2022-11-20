@@ -98,7 +98,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto node = std::make_shared<GenericDrawNode>();
 		node->setStretch(1.0f);
 		node->setDrawCallback([node, start_scr, end_scr, color] {
-			GRAPHICS->draw(Renderer::Topology::LineList, {
+			GRAPHICS->draw(skygfx::Topology::LineList, {
 				{ { start_scr, 0.0f }, color },
 				{ { end_scr, 0.0f }, color }
 			});
@@ -507,7 +507,7 @@ std::string GameplayViewNode::getShortMapName() const
 	return path.filename().replace_extension().string();
 }
 
-std::shared_ptr<Renderer::Texture> GameplayViewNode::getCurrentMapTexture() const
+std::shared_ptr<skygfx::Texture> GameplayViewNode::getCurrentMapTexture() const
 {
 	auto texture_name = "overview_" + getShortMapName();
 	auto result = TEXTURE(texture_name);

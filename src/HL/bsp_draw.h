@@ -17,10 +17,10 @@ namespace HL
 	public:
 		BspDraw(const BSPFile& bspfile);
 
-		void draw(std::shared_ptr<Renderer::RenderTarget> target, const glm::vec3& pos, const glm::vec3& angles);
+		void draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, const glm::vec3& angles);
 
 	private:
-		using Vertex = Renderer::Vertex::PositionColor;
+		using Vertex = skygfx::Vertex::PositionColor;
 
 		std::shared_ptr<Graphics::Camera3D> mCamera;
 		std::vector<Face> mFaces;
