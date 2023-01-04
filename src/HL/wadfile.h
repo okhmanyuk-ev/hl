@@ -6,8 +6,8 @@
 #include <fstream>
 #include <vector>
 
-#include <Common/bitbuffer.h>
-#include <Platform/asset.h>
+#include <common/bitbuffer.h>
+#include <platform/asset.h>
 
 typedef struct wadmiptex_s
 {
