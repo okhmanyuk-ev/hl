@@ -110,6 +110,6 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	auto [vertices, count] = builder.end();
 
 	GRAPHICS->draw(skygfx::Topology::TriangleList, vertices, count);
-	GRAPHICS->pop(6);
+	GRAPHICS->pop(5);
 	GRAPHICS->setBatching(prev_batching);
 }
