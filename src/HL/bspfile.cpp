@@ -163,6 +163,12 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 	bf.setPosition(header.lumps[LUMP_MODELS].fileofs);
 	bf.read(mModels.data(), header.lumps[LUMP_MODELS].filelen);
 
+	// clipnodes
+
+	mClipNodes.resize(header.lumps[LUMP_CLIPNODES].filelen / sizeof(dclipnode_t));
+	bf.setPosition(header.lumps[LUMP_CLIPNODES].fileofs);
+	bf.read(mClipNodes.data(), header.lumps[LUMP_CLIPNODES].filelen);
+
 	// textures
 
 	bf.setPosition(header.lumps[LUMP_TEXTURES].fileofs);

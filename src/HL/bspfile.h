@@ -280,6 +280,7 @@ private:
 	std::vector<mnode_t> mNodes;
 	std::vector<mleaf_t> mLeafs;
 	std::vector<dmodel_t> mModels;
+	std::vector<dclipnode_t> mClipNodes;
 
 	std::map<std::string, dmodel_t*> mModelsMap;
 
