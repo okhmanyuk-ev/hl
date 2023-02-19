@@ -74,11 +74,11 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 	}
 }
 
-void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, const glm::vec3& angles)
+void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, float yaw, float pitch)
 {
 	mCamera->setPosition(pos);
-	mCamera->setYaw(glm::radians(angles.x));
-	mCamera->setPitch(glm::radians(angles.y));
+	mCamera->setYaw(yaw);
+	mCamera->setPitch(pitch);
 	mCamera->onFrame();
 
 	auto view = mCamera->getViewMatrix();
