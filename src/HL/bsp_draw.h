@@ -2,28 +2,32 @@
 
 #include <graphics/all.h>
 #include <HL/bspfile.h>
+#include <skygfx/utils.h>
 
 namespace HL
 {
 	class BspDraw
 	{
 	public:
-		struct Face
-		{
-			int start;
-			int count;
-		};
-
-	public:
 		BspDraw(const BSPFile& bspfile);
 
-		void draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, float yaw, float pitch);
+		void draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,
+			float yaw, float pitch, const glm::mat4& model_matrix = glm::mat4(1.0f),
+			const glm::vec3& world_up = { 0.0f, 0.0f, 1.0f },
+			const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures = {});
+
+		const auto& getLights() const { return mLights; }
+		void setLights(const std::vector<skygfx::utils::Light> value) { mLights = value; }
 
 	private:
-		using Vertex = skygfx::Vertex::PositionColor;
-
-		std::shared_ptr<Graphics::Camera3D> mCamera;
-		std::vector<Face> mFaces;
-		std::vector<Vertex> mVertices;
+		skygfx::utils::Mesh mMesh;
+		struct Drawcall
+		{
+			int tex_id;
+			skygfx::utils::Mesh::DrawingType drawing_type;
+		};
+		std::vector<Drawcall> mDrawcalls;
+		std::vector<skygfx::utils::Light> mLights;
+		std::shared_ptr<skygfx::Texture> mDefaultTexture;
 	};
 }

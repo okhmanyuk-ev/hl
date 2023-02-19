@@ -4,24 +4,27 @@ using namespace HL;
 
 BspDraw::BspDraw(const BSPFile& bspfile)
 {
-	mCamera = std::make_shared<Graphics::Camera3D>();
-	mCamera->setWorldUp({ 0.0f, 0.0f, 1.0f });
-
 	auto& vertices = bspfile.getVertices();
 	auto& edges = bspfile.getEdges();
 	auto& faces = bspfile.getFaces();
 	auto& surfedges = bspfile.getSurfEdges();
 	auto& texinfos = bspfile.getTexInfos();
 	auto& planes = bspfile.getPlanes();
+	auto& textures = bspfile.getTextures();
+
+	std::vector<skygfx::utils::Mesh::Vertex> my_vertices;
 
 	for (auto& face : faces)
 	{
 		auto texinfo = texinfos[face.texinfo];
 		auto plane = planes[face.planenum];
+		auto texture = textures[texinfo._miptex];
 
-		Face f = {};
+		float is = 1.0f / (float)texture.width;
+		float it = 1.0f / (float)texture.height;
 
-		f.start = mVertices.size();
+		uint32_t vertex_offset = static_cast<uint32_t>(my_vertices.size());
+		uint32_t vertex_count = 0;
 
 		for (int i = face.firstedge; i < face.firstedge + face.numedges; i++)
 		{
@@ -29,17 +32,15 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			auto& edge = edges[std::abs(surfedge)];
 			auto& vertex = vertices[edge.v[surfedge < 0 ? 1 : 0]];
 
-			auto v = Vertex();
-
-			auto gray = glm::linearRand(0.5f, 1.0f);
+			auto v = skygfx::utils::Mesh::Vertex();
 
 			v.pos = vertex;
-			v.color = { gray, gray, gray, 1.0f };
+			v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-			//v.normal = *(glm::vec3*)(&plane.normal);
+			v.normal = *(glm::vec3*)(&plane.normal);
 
-			//if (face.side)
-			//	v.normal = -v.normal;
+			if (face.side)
+				v.normal = -v.normal;
 			
 			glm::vec3 ti0 = {
 				texinfo.vecs[0][0],
@@ -56,60 +57,88 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			float s = glm::dot(v.pos, ti0) + texinfo.vecs[0][3];
 			float t = glm::dot(v.pos, ti1) + texinfo.vecs[1][3];
 
-			//v.tex.x = s * is;
-			//v.tex.y = t * it;
+			v.texcoord.x = s * is;
+			v.texcoord.y = t * it;
 		
-			if (f.count >= 3) // triangulation 
+			if (vertex_count >= 3) // triangulation
 			{
-				f.count += 2;
-				mVertices.push_back(mVertices[f.start]);
-				mVertices.push_back(mVertices[mVertices.size() - 2]);
+				vertex_count += 2;
+				my_vertices.push_back(my_vertices[vertex_offset]);
+				my_vertices.push_back(my_vertices[my_vertices.size() - 2]);
 			}
 
-			f.count += 1;
-			mVertices.push_back(v);
+			vertex_count += 1;
+			my_vertices.push_back(v);
 		}
 
-		mFaces.push_back(f);
+		auto drawcall = Drawcall{
+			.tex_id = texinfo._miptex,
+			.drawing_type = skygfx::utils::Mesh::DrawVertices{
+				.vertex_count = vertex_count,
+				.vertex_offset = vertex_offset
+			}
+		};
+
+		mDrawcalls.push_back(drawcall);
 	}
+
+	mMesh.setVertices(my_vertices);
+
+	std::vector<uint32_t> pixels = {
+		Graphics::Color::ToUInt32(Graphics::Color::White),
+		Graphics::Color::ToUInt32(Graphics::Color::Gray),
+		Graphics::Color::ToUInt32(Graphics::Color::Gray),
+		Graphics::Color::ToUInt32(Graphics::Color::White),
+	};
+	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, 4, pixels.data());
 }
 
-void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos, float yaw, float pitch)
+void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,
+	float yaw, float pitch, const glm::mat4& model_matrix, const glm::vec3& world_up,
+	const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures)
 {
-	mCamera->setPosition(pos);
-	mCamera->setYaw(yaw);
-	mCamera->setPitch(pitch);
-	mCamera->onFrame();
+	auto camera = skygfx::utils::PerspectiveCamera{
+		.position = pos,
+		.yaw = yaw,
+		.pitch = pitch,
+		.world_up = world_up
+	};
 
-	auto view = mCamera->getViewMatrix();
-	auto projection = mCamera->getProjectionMatrix();
-	auto prev_batching = GRAPHICS->isBatching();
-
-	GRAPHICS->setBatching(false);
-	GRAPHICS->pushCleanState();
-	GRAPHICS->pushViewMatrix(view);
-	GRAPHICS->pushProjectionMatrix(projection);
-	GRAPHICS->pushRenderTarget(target);
-	GRAPHICS->pushDepthMode(skygfx::ComparisonFunc::Less);
-	GRAPHICS->clear(glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
-	
-	static auto builder = Graphics::MeshBuilder();
-	builder.begin();
-
-	for (const auto& face : mFaces)
+	RENDERER->setRenderTarget(target);
+	RENDERER->setDepthMode(skygfx::ComparisonFunc::Less);
+	RENDERER->setCullMode(skygfx::CullMode::Back);
+	if (textures.empty())
 	{
-		for (auto i = face.start; i < face.start + face.count; i++)
-		{
-			const auto& vertex = mVertices.at(i);
-
-			builder.color(vertex.color);
-			builder.vertex(vertex.pos);
-		}
+		RENDERER->setSampler(skygfx::Sampler::Nearest);
 	}
+	else
+	{
+		RENDERER->setSampler(skygfx::Sampler::Linear);
+	}
+	RENDERER->setTextureAddressMode(skygfx::TextureAddress::Wrap);
+	RENDERER->clear();
 
-	auto [vertices, count] = builder.end();
+	static std::vector<skygfx::utils::Light> DefaultLights = {
+		skygfx::utils::DirectionalLight{}
+	};
 
-	GRAPHICS->draw(skygfx::Topology::TriangleList, vertices, count);
-	GRAPHICS->pop(5);
-	GRAPHICS->setBatching(prev_batching);
+	const auto& lights = mLights.empty() ? DefaultLights : mLights;
+
+	RENDERER->setBlendMode(skygfx::BlendStates::NonPremultiplied);
+
+	for (const auto& light : lights)
+	{
+		for (const auto& drawcall : mDrawcalls)
+		{
+			mMesh.setDrawingType(drawcall.drawing_type);
+
+			auto material = skygfx::utils::Material{
+				.color_texture = textures.contains(drawcall.tex_id) ? textures.at(drawcall.tex_id).get() : mDefaultTexture.get()
+			};
+
+			skygfx::utils::DrawMesh(mMesh, camera, model_matrix, material, 0.0f, light);
+		}
+
+		RENDERER->setBlendMode(skygfx::BlendStates::Additive);
+	}
 }
