@@ -1,10 +1,10 @@
 #pragma once
 
 #include "networking.h"
-#include <Console/device.h>
-#include <Common/console_commands.h>
-#include <Network/address.h>
-#include <Console/system.h>
+#include <console/device.h>
+#include <common/console_commands.h>
+#include <network/address.h>
+#include <console/system.h>
 #include <vector>
 #include <map>
 #include "channel.h"

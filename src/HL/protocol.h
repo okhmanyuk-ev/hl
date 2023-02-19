@@ -609,3 +609,11 @@ namespace HL::Protocol
 #define FL_CUSTOMENTITY             BIT(29) // This is a custom entity
 #define FL_KILLME                   BIT(30) // This entity is marked for death -- This allows the engine to kill ents at the appropriate time
 #define FL_DORMANT                  BIT(31) // Entity is dormant, no updates to client
+
+// edict->deadflag values
+
+#define DEAD_NO 0 // alive
+#define DEAD_DYING 1 // playing death animation or still falling off of a ledge waiting to hit ground
+#define DEAD_DEAD 2 // dead. lying still.
+#define DEAD_RESPAWNABLE 3
+#define DEAD_DISCARDBODY 4
