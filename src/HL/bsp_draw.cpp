@@ -105,7 +105,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	};
 
 	RENDERER->setRenderTarget(target);
-	RENDERER->setDepthMode(skygfx::ComparisonFunc::Less);
+	RENDERER->setDepthMode(skygfx::ComparisonFunc::LessEqual);
 	RENDERER->setCullMode(skygfx::CullMode::Back);
 	if (textures.empty())
 	{
