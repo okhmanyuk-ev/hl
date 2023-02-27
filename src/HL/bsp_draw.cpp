@@ -98,9 +98,9 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures)
 {
 	auto camera = skygfx::utils::PerspectiveCamera{
-		.position = pos,
 		.yaw = yaw,
 		.pitch = pitch,
+		.position = pos,
 		.world_up = world_up
 	};
 
