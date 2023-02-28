@@ -24,7 +24,7 @@ namespace HL
 		struct Drawcall
 		{
 			int tex_id;
-			skygfx::utils::Mesh::DrawingType drawing_type;
+			skygfx::utils::DrawCommand draw_command;
 		};
 		std::vector<Drawcall> mDrawcalls;
 		std::vector<skygfx::utils::Light> mLights;
