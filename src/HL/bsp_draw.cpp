@@ -71,15 +71,13 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			my_vertices.push_back(v);
 		}
 
-		auto drawcall = Drawcall{
-			.tex_id = texinfo._miptex,
-			.draw_command = skygfx::utils::DrawVerticesCommand{
-				.vertex_count = vertex_count,
-				.vertex_offset = vertex_offset
-			}
+		auto tex_id = texinfo._miptex;
+		auto draw_command = skygfx::utils::DrawVerticesCommand{
+			.vertex_count = vertex_count,
+			.vertex_offset = vertex_offset
 		};
 
-		mDrawcalls.push_back(drawcall);
+		mDrawcalls[tex_id].push_back(draw_command);
 	}
 
 	mMesh.setVertices(my_vertices);
@@ -136,13 +134,16 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 
 	for (const auto& light : lights)
 	{
-		for (const auto& drawcall : mDrawcalls)
+		for (const auto& [tex_id, draw_commands] : mDrawcalls)
 		{
 			auto material = skygfx::utils::Material{
-				.color_texture = textures.contains(drawcall.tex_id) ? textures.at(drawcall.tex_id).get() : mDefaultTexture.get()
+				.color_texture = textures.contains(tex_id) ? textures.at(tex_id).get() : mDefaultTexture.get()
 			};
 
-			skygfx::utils::DrawMesh(mMesh, matrices, material, drawcall.draw_command, 0.0f, light, eye_pos);
+			for (const auto& draw_command : draw_commands)
+			{
+				skygfx::utils::DrawMesh(mMesh, matrices, material, draw_command, 0.0f, light, eye_pos);
+			}
 		}
 
 		RENDERER->setBlendMode(skygfx::BlendStates::Additive);

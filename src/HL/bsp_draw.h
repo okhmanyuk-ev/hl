@@ -21,12 +21,8 @@ namespace HL
 
 	private:
 		skygfx::utils::Mesh mMesh;
-		struct Drawcall
-		{
-			int tex_id;
-			skygfx::utils::DrawCommand draw_command;
-		};
-		std::vector<Drawcall> mDrawcalls;
+		using TexId = int;
+		std::unordered_map<TexId, std::vector<skygfx::utils::DrawCommand>> mDrawcalls;
 		std::vector<skygfx::utils::Light> mLights;
 		std::shared_ptr<skygfx::Texture> mDefaultTexture;
 	};
