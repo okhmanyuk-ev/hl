@@ -126,6 +126,14 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 
 	RENDERER->setBlendMode(skygfx::BlendStates::NonPremultiplied);
 
+	auto [proj, view, eye_pos] = skygfx::utils::MakeCameraMatrices(camera);
+
+	auto matrices = skygfx::utils::Matrices{
+		.projection = proj,
+		.view = view,
+		.model = model_matrix
+	};
+
 	for (const auto& light : lights)
 	{
 		for (const auto& drawcall : mDrawcalls)
@@ -134,7 +142,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 				.color_texture = textures.contains(drawcall.tex_id) ? textures.at(drawcall.tex_id).get() : mDefaultTexture.get()
 			};
 
-			skygfx::utils::DrawMesh(mMesh, camera, model_matrix, material, drawcall.draw_command, 0.0f, light);
+			skygfx::utils::DrawMesh(mMesh, matrices, material, drawcall.draw_command, 0.0f, light, eye_pos);
 		}
 
 		RENDERER->setBlendMode(skygfx::BlendStates::Additive);
