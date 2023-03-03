@@ -2,7 +2,7 @@
 
 #include <graphics/all.h>
 #include <HL/bspfile.h>
-#include <skygfx/utils.h>
+#include <skygfx/ext.h>
 
 namespace HL
 {
@@ -17,13 +17,13 @@ namespace HL
 			const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures = {});
 
 		const auto& getLights() const { return mLights; }
-		void setLights(const std::vector<skygfx::utils::Light> value) { mLights = value; }
+		void setLights(const std::vector<skygfx::ext::Light> value) { mLights = value; }
 
 	private:
-		skygfx::utils::Mesh mMesh;
+		skygfx::ext::Mesh mMesh;
 		using TexId = int;
-		std::unordered_map<TexId, std::vector<skygfx::utils::DrawCommand>> mDrawcalls;
-		std::vector<skygfx::utils::Light> mLights;
+		std::unordered_map<TexId, std::vector<skygfx::ext::DrawCommand>> mDrawcalls;
+		std::vector<skygfx::ext::Light> mLights;
 		std::shared_ptr<skygfx::Texture> mDefaultTexture;
 	};
 }
