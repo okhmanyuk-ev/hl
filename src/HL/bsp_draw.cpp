@@ -136,7 +136,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 		for (const auto& [tex_id, draw_commands] : mDrawcalls)
 		{
 			skygfx::ext::SetColorTexture(cmds, textures.contains(tex_id) ? textures.at(tex_id).get() : mDefaultTexture.get());
-			skygfx::ext::InsertSubcommands(cmds, const_cast<skygfx::ext::Commands*>(&draw_commands));
+			skygfx::ext::InsertSubcommands(cmds, &draw_commands);
 		}
 
 		skygfx::ext::Callback(cmds, []{
