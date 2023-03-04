@@ -77,7 +77,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			.vertex_offset = vertex_offset
 		};
 
-		mDrawcalls[tex_id].push_back(draw_command);
+		skygfx::ext::Draw(mDrawcalls[tex_id], draw_command);
 	}
 
 	mMesh.setVertices(my_vertices);
@@ -136,11 +136,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 		for (const auto& [tex_id, draw_commands] : mDrawcalls)
 		{
 			skygfx::ext::SetColorTexture(cmds, textures.contains(tex_id) ? textures.at(tex_id).get() : mDefaultTexture.get());
-
-			for (const auto& draw_command : draw_commands)
-			{
-				skygfx::ext::Draw(cmds, draw_command);
-			}
+			skygfx::ext::InsertSubcommands(cmds, const_cast<skygfx::ext::Commands*>(&draw_commands));
 		}
 
 		skygfx::ext::Callback(cmds, []{

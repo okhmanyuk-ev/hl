@@ -22,7 +22,7 @@ namespace HL
 	private:
 		skygfx::ext::Mesh mMesh;
 		using TexId = int;
-		std::unordered_map<TexId, std::vector<skygfx::ext::DrawCommand>> mDrawcalls;
+		std::unordered_map<TexId, skygfx::ext::Commands> mDrawcalls;
 		std::vector<skygfx::ext::Light> mLights;
 		std::shared_ptr<skygfx::Texture> mDefaultTexture;
 	};
