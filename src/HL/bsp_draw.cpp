@@ -116,8 +116,8 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	RENDERER->setTextureAddressMode(skygfx::TextureAddress::Wrap);
 	RENDERER->clear();
 
-	static std::vector<skygfx::ext::Light> DefaultLights = {
-		skygfx::ext::DirectionalLight{}
+	static std::vector<skygfx::ext::Effect> DefaultLights = {
+		skygfx::ext::effects::DirectionalLight{}
 	};
 
 	const auto& lights = mLights.empty() ? DefaultLights : mLights;
@@ -131,7 +131,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 
 	for (const auto& light : lights)
 	{
-		skygfx::ext::SetLight(cmds, light);
+		skygfx::ext::SetEffect(cmds, light);
 
 		for (const auto& [tex_id, draw_commands] : mDrawcalls)
 		{
