@@ -17,13 +17,13 @@ namespace HL
 			const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures = {});
 
 		const auto& getLights() const { return mLights; }
-		void setLights(const std::vector<skygfx::ext::Effect> value) { mLights = value; }
+		void setLights(const std::vector<skygfx::ext::Light> value) { mLights = value; }
 
 	private:
 		skygfx::ext::Mesh mMesh;
 		using TexId = int;
 		std::unordered_map<TexId, skygfx::ext::Commands> mDrawcalls;
-		std::vector<skygfx::ext::Effect> mLights;
+		std::vector<skygfx::ext::Light> mLights;
 		std::shared_ptr<skygfx::Texture> mDefaultTexture;
 	};
 }
