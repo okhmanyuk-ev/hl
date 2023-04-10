@@ -12,7 +12,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 	auto& planes = bspfile.getPlanes();
 	auto& textures = bspfile.getTextures();
 
-	std::vector<skygfx::ext::Mesh::Vertex> my_vertices;
+	std::vector<skygfx::utils::Mesh::Vertex> my_vertices;
 
 	for (auto& face : faces)
 	{
@@ -32,7 +32,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 			auto& edge = edges[std::abs(surfedge)];
 			auto& vertex = vertices[edge.v[surfedge < 0 ? 1 : 0]];
 
-			auto v = skygfx::ext::Mesh::Vertex();
+			auto v = skygfx::utils::Mesh::Vertex();
 
 			v.pos = vertex;
 			v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -72,12 +72,12 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 		}
 
 		auto tex_id = texinfo._miptex;
-		auto draw_command = skygfx::ext::DrawVerticesCommand{
+		auto draw_command = skygfx::utils::DrawVerticesCommand{
 			.vertex_count = vertex_count,
 			.vertex_offset = vertex_offset
 		};
 
-		skygfx::ext::Draw(mDrawcalls[tex_id], draw_command);
+		skygfx::utils::Draw(mDrawcalls[tex_id], draw_command);
 	}
 
 	mMesh.setVertices(my_vertices);
@@ -95,7 +95,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	float yaw, float pitch, const glm::mat4& model_matrix, const glm::vec3& world_up,
 	const std::unordered_map<int, std::shared_ptr<skygfx::Texture>>& textures)
 {
-	auto camera = skygfx::ext::PerspectiveCamera{
+	auto camera = skygfx::utils::PerspectiveCamera{
 		.yaw = yaw,
 		.pitch = pitch,
 		.position = pos,
@@ -116,37 +116,38 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 	RENDERER->setTextureAddressMode(skygfx::TextureAddress::Wrap);
 	RENDERER->clear();
 
-	const static std::vector<skygfx::ext::Light> DefaultLights = {
-		skygfx::ext::effects::DirectionalLight{}
+	const static std::vector<skygfx::utils::Light> DefaultLights = {
+		skygfx::utils::effects::DirectionalLight{}
 	};
 
 	const auto& lights = mLights.empty() ? DefaultLights : mLights;
 
 	RENDERER->setBlendMode(skygfx::BlendStates::NonPremultiplied);
 
-	skygfx::ext::Commands cmds;
-	skygfx::ext::SetMesh(cmds, &mMesh);
-	skygfx::ext::SetCamera(cmds, camera);
-	skygfx::ext::SetModelMatrix(cmds, model_matrix);
+	skygfx::utils::Commands cmds;
+	skygfx::utils::SetSampler(cmds, skygfx::Sampler::Linear);
+	skygfx::utils::SetMesh(cmds, &mMesh);
+	skygfx::utils::SetCamera(cmds, camera);
+	skygfx::utils::SetModelMatrix(cmds, model_matrix);
 
 	for (const auto& light : lights)
 	{
 		std::visit(cases{
 			[&](const auto& value) {
-				skygfx::ext::SetEffect(cmds, value);		
+				skygfx::utils::SetEffect(cmds, value);
 			}
 		}, light);
 
 		for (const auto& [tex_id, draw_commands] : mDrawcalls)
 		{
-			skygfx::ext::SetColorTexture(cmds, textures.contains(tex_id) ? textures.at(tex_id).get() : mDefaultTexture.get());
-			skygfx::ext::InsertSubcommands(cmds, &draw_commands);
+			skygfx::utils::SetColorTexture(cmds, textures.contains(tex_id) ? textures.at(tex_id).get() : mDefaultTexture.get());
+			skygfx::utils::InsertSubcommands(cmds, &draw_commands);
 		}
 
-		skygfx::ext::Callback(cmds, []{
+		skygfx::utils::Callback(cmds, []{
 			RENDERER->setBlendMode(skygfx::BlendStates::Additive);	
 		});
 	}
 
-	skygfx::ext::ExecuteCommands(cmds);
+	skygfx::utils::ExecuteCommands(cmds);
 }
