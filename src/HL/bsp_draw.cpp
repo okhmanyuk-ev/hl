@@ -88,7 +88,7 @@ BspDraw::BspDraw(const BSPFile& bspfile)
 		Graphics::Color::ToUInt32(Graphics::Color::Gray),
 		Graphics::Color::ToUInt32(Graphics::Color::White),
 	};
-	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, 4, pixels.data());
+	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, skygfx::Format::Byte4, pixels.data());
 }
 
 void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,
