@@ -13,14 +13,10 @@
 *
 ****/
 
-#ifndef __linux__
-#include <windows.h>
-#endif
-
 #ifndef _STUDIO_H_
 #define _STUDIO_H_
 
-#include <glm\glm.hpp>
+#include <glm/glm.hpp>
 
 /*
 ==============================================================================
@@ -186,8 +182,8 @@ struct mstudioanim_t
 union mstudioanimvalue_t
 {
 	struct {
-		byte	valid;
-		byte	total;
+		uint8_t	valid;
+		uint8_t	total;
 	} num;
 	short		value;
 };

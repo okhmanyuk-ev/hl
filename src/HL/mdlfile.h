@@ -14,7 +14,7 @@ class MDLFile
 public:
 	void loadFromFile(const std::string& fileName)
 	{
-		auto asset = Platform::Asset::Asset(fileName);
+		auto asset = Platform::Asset(fileName);
 		mBuffer.write(asset.getMemory(), asset.getSize());
 	};
 
