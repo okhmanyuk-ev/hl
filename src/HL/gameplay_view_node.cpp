@@ -8,7 +8,7 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 {
 	auto str = std::string((char*)txt_file.getMemory(), txt_file.getSize());
 
-	auto getDataInBraces = [&](std::string name) {
+	auto getDataInBraces = [](std::string str, std::string name) {
 		auto pos = str.find(name);
 		auto data = str.substr(pos + name.length());
 		auto open_pos = data.find("{");
@@ -17,7 +17,7 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 		return result;
 	};
 
-	auto global = getDataInBraces("global");
+	auto global = getDataInBraces(str, "global");
 	auto global_tokens_v = Console::System::MakeTokensFromString(global);
 	std::list<std::string> global_tokens;
 	std::copy(global_tokens_v.begin(), global_tokens_v.end(), std::back_inserter(global_tokens));
@@ -53,7 +53,7 @@ void OverviewInfo::load(const Platform::Asset& txt_file)
 		}
 	}
 
-	auto layer = getDataInBraces("layer");
+	auto layer = getDataInBraces(str, "layer");
 	auto layer_tokens_v = Console::System::MakeTokensFromString(layer);
 	std::list<std::string> layer_tokens;
 	std::copy(layer_tokens_v.begin(), layer_tokens_v.end(), std::back_inserter(layer_tokens));
