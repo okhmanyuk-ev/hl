@@ -6,6 +6,8 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <optional>
+#include <unordered_map>
 #include "wadfile.h"
 
 #include <glm/glm.hpp>
@@ -234,8 +236,8 @@ class BSPFile
 public:
 	struct Entity
 	{
-		std::vector<std::pair<std::string, std::string>> args;
-		std::string* getValueOf(std::string_view field);
+		std::unordered_map<std::string, std::string> args;
+		const std::string& getClassName() const;
 	};
 
 public:

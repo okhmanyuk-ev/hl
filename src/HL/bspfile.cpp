@@ -6,17 +6,9 @@
 #include <common/bitbuffer.h>
 #include "utils.h"
 
-std::string* BSPFile::Entity::getValueOf(std::string_view field)
+const std::string& BSPFile::Entity::getClassName() const
 {
-	for (auto& arg : args)
-	{
-		if (arg.first != field)
-			continue;
-
-		return &arg.second;
-	}
-
-	return nullptr;
+	return args.at("classname");
 }
 
 void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
@@ -220,7 +212,8 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 				s = s.substr(s.find("\"") + 1);
 
-				e.args.push_back({ key, value });
+				assert(!e.args.contains(key));
+				e.args.insert({ key, value });
 			}
 
 			mEntities.push_back(e);
@@ -241,7 +234,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 		return tokens;
 	};
 
-	auto str = Console::System::MakeTokensFromString(*findEntity("worldspawn")[0]->getValueOf("wad"));
+	auto str = Console::System::MakeTokensFromString(findEntity("worldspawn")[0]->args.at("wad"));
 	
 	auto wads = split(str[0], ';');
 
@@ -313,7 +306,7 @@ std::vector<BSPFile::Entity*> BSPFile::findEntity(std::string_view className)
 
 	for (auto& entity : mEntities)
 	{
-		if (*entity.getValueOf("classname") != className)
+		if (entity.getClassName() != className)
 			continue;
 
 		result.push_back(&entity);
