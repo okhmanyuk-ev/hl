@@ -34,7 +34,7 @@ namespace HL::Utils
             if (CONSOLE->getCVars().at("dlogs").getGetter()().at(0) != "1")
                 return;
 
-            LOGCF(text, Console::Color::DarkGray, args...);
+			sky::Log(Console::Color::DarkGray, text, args...);
         }
 #else
 		dlog(std::string text, Args&&... args, const std::source_location& location = std::source_location::current())
@@ -42,7 +42,7 @@ namespace HL::Utils
 			if (CONSOLE->getCVars().at("dlogs").getGetter()().at(0) != "1")
 				return;
 
-			LOGCF("[{}] " + text, Console::Color::DarkGray, location.function_name(), args...);
+			sky::Log(Console::Color::DarkGray, "[{}] " + text, location.function_name(), args...);
 		}
 #endif
 	};

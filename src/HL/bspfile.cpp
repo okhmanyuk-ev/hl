@@ -221,7 +221,16 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 			entities = entities.substr(entities.find("}") + 1);
 		}
 	}
-	
+
+	for (const auto& entity : mEntities)
+	{
+		for (const auto& [key, value] : entity.args)
+		{
+			sky::Log("key: {}, value: {}", key, value);
+		}
+		sky::Log("----------------------------------------");
+	}
+
 	auto split = [](const std::string& s, char delimiter) -> std::vector<std::string>
 	{
 		std::vector<std::string> tokens;

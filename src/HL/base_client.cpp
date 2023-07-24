@@ -229,7 +229,7 @@ void BaseClient::readConnectionlessAccepted(Network::Packet& packet)
 	
 	mChannel->setAddress(mServerAdr.value());
 
-	LOG("connection accepted");
+	sky::Log("connection accepted");
 
 	mState = State::Connected;
 
@@ -475,7 +475,7 @@ void BaseClient::readRegularMessages(BitBuffer& msg)
 			auto history_str = std::accumulate(history.begin(), history.end(), std::string(magic_enum::enum_name(*history.begin())),
 				[](auto a, auto b) { return a + ", " + std::string(magic_enum::enum_name(b)); });
 
-			LOGCF("unknown svc: {}, history: {}", Console::Color::Red, index, history_str);
+			sky::Log(Console::Color::Red, "unknown svc: {}, history: {}", index, history_str);
 			return;
 		}
 	}
@@ -513,7 +513,7 @@ void BaseClient::receiveFile(std::string_view fileName, BitBuffer& msg)
     Platform::Asset::Write(game_dir + "/" + std::string(fileName), msg.getMemory(), msg.getSize(), HL_ASSET_STORAGE);
 	mDownloadQueue.remove_if([fileName](auto a) { return a == fileName; });
 	
-	LOG("received: \"" + std::string(fileName) + "\", size: " +
+	sky::Log("received: \"" + std::string(fileName) + "\", size: " +
 		Common::Helpers::BytesToNiceString(msg.getSize()) /*+ ", Left: " + std::to_string(mDownloadQueue.size())*/);
 }
 
@@ -615,7 +615,7 @@ void BaseClient::readRegularTime(BitBuffer& msg)
 void BaseClient::readRegularPrint(BitBuffer& msg)
 {
 	auto text = Common::BufferHelpers::ReadString(msg);
-	LOG(text);
+	sky::Log(text);
 }
 
 void BaseClient::readRegularStuffText(BitBuffer& msg)
@@ -797,10 +797,10 @@ void BaseClient::readRegularSpawnBaseline(BitBuffer& msg)
 	msg.alignByteBoundary();
 
 	if (mBaselines.size() > 0)
-		LOGF("{} baseline entities received", mBaselines.size());
+		sky::Log("{} baseline entities received", mBaselines.size());
 
 	if (mExtraBaselines.size() > 0)
-		LOGF("{} extra baseline entities received", mExtraBaselines.size());
+		sky::Log("{} extra baseline entities received", mExtraBaselines.size());
 
 	mDeltaEntities = mBaselines;
 }
@@ -974,14 +974,14 @@ void BaseClient::readRegularDecalName(BitBuffer& msg)
 	auto index = msg.read<uint8_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
 
-	LOGC("DecalIndex: " + std::to_string(index) + ", DecalName: " + name, Console::Color::Red);
+	sky::Log(Console::Color::Red, "DecalIndex: " + std::to_string(index) + ", DecalName: " + name);
 }
 
 void BaseClient::readRegularRoomType(BitBuffer& msg)
 {
 	auto room = msg.read<int16_t>();
 
-	LOGC("RoomType: " + std::to_string(room), Console::Color::Red);
+	sky::Log(Console::Color::Red, "RoomType: " + std::to_string(room));
 }
 
 void BaseClient::readRegularUserMsg(BitBuffer& msg)
@@ -1041,7 +1041,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				if (mEntities.count(index) == 0)
 				{
-					LOGC("trying to delete non existing entity " + std::to_string(index), Console::Color::Red);
+					sky::Log(Console::Color::Red, "trying to delete non existing entity " + std::to_string(index));
 				}
 				mEntities.erase(index);
 				continue;
@@ -1056,7 +1056,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				auto extra_index = msg.readBits(6);
 				assert(mExtraBaselines.count(extra_index) > 0);
-				LOGF("using extra baseline {} for entity {}", extra_index, index);
+				sky::Log("using extra baseline {} for entity {}", extra_index, index);
 				entity = mExtraBaselines[extra_index];
 			}
 
@@ -1064,7 +1064,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 		}
 
 		if (mEntities.size() != count)
-			LOGCF("entities size mismatch: have {}, must be {}", Console::Color::Red, mEntities.size(), count);
+			sky::Log(Console::Color::Red, "entities size mismatch: have {}, must be {}", mEntities.size(), count);
 	}
 	else
 	{
@@ -1086,7 +1086,7 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 			{
 				auto extra_index = msg.readBits(6);
 				assert(mExtraBaselines.count(extra_index) > 0);
-				LOGF("using extra baseline {} for entity {}", extra_index, index);
+				sky::Log("using extra baseline {} for entity {}", extra_index, index);
 				entity = mExtraBaselines[extra_index];
 			}
 			else if (msg.readBit())
@@ -1094,12 +1094,12 @@ void BaseClient::readRegularPacketEntities(BitBuffer& msg, bool delta)
 				auto base_index = msg.readBits(6);
 				if (mBaselines.count(base_index) > 0)
 				{
-					LOGF("using baseline {} for entity {}", base_index, index);
+					sky::Log("using baseline {} for entity {}", base_index, index);
 					entity = mBaselines[base_index];
 				}
 				else
 				{
-					LOGCF("want use baseline {} for entity {}, but baseline not found", Console::Color::Red, base_index, index);
+					sky::Log(Console::Color::Red, "want use baseline {} for entity {}, but baseline not found", base_index, index);
 				}
 			}
 
@@ -1154,7 +1154,7 @@ void BaseClient::readRegularResourceList(BitBuffer& msg)
 
 	msg.alignByteBoundary();
 
-	LOGF("{} resources received", mResources.size());
+	sky::Log("{} resources received", mResources.size());
 
 	// fix sound directory
 
@@ -1217,7 +1217,7 @@ void BaseClient::readRegularResourceRequest(BitBuffer& msg)
 	bf.write<uint8_t>((uint8_t)Protocol::Client::Message::ResourceList);
 	bf.write<int16_t>(count);
 
-	LOGF("{} resources sent", count);
+	sky::Log("{} resources sent", count);
 
 	mChannel->addReliableMessage(bf);
 	mChannel->fragmentateReliableBuffer(512, false);
@@ -1266,12 +1266,12 @@ void BaseClient::readRegularCustomization(BitBuffer& msg)
 void BaseClient::readFileTxferFailed(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
-	LOGC("failed to download file: " + name, Console::Color::Red);
+	sky::Log(Console::Color::Red, "failed to download file: " + name);
 }
 
 void BaseClient::readRegularHLTV(BitBuffer& msg)
 {
-	LOGC("SVC_HLTV was received", Console::Color::Red);
+	sky::Log(Console::Color::Red, "SVC_HLTV was received");
 }
 
 void BaseClient::readRegularDirector(BitBuffer& msg)
@@ -1303,14 +1303,14 @@ void BaseClient::readRegularResourceLocation(BitBuffer& msg)
 void BaseClient::readRegularCVarValue(BitBuffer& msg)
 {
 	auto name = Common::BufferHelpers::ReadString(msg);
-	LOGC("SVC_SENDCVARVALUE: " + name, Console::Color::Red);
+	sky::Log(Console::Color::Red, "SVC_SENDCVARVALUE: " + name);
 }
 
 void BaseClient::readRegularCVarValue2(BitBuffer& msg)
 {
 	auto id = msg.read<uint32_t>();
 	auto name = Common::BufferHelpers::ReadString(msg);
-	LOGC("SVC_SENDCVARVALUE2: " + std::to_string(id) + ", " + name, Console::Color::Red);
+	sky::Log(Console::Color::Red, "SVC_SENDCVARVALUE2: " + std::to_string(id) + ", " + name);
 }
 
 void BaseClient::readTempEntityBeamPoints(BitBuffer& msg)
@@ -1450,7 +1450,7 @@ void BaseClient::writeRegularMessages(BitBuffer& msg)
 		if (mConfirmationRequired)
 			writeRegularFileConsistency(msg);
 		else
-			LOG("confirmation of resources isn't required");
+			sky::Log("confirmation of resources isn't required");
 
 		auto crc = mServerInfo.value().map_crc;
 		auto spawn_count = mServerInfo.value().spawn_count;
@@ -1544,7 +1544,7 @@ void BaseClient::writeRegularFileConsistency(BitBuffer& msg)
 	msg.writeBit(false);
 	msg.alignByteBoundary();
 
-	LOGF("{} resources confirmed", c);
+	sky::Log("{} resources confirmed", c);
 }
 #pragma endregion
 
@@ -1558,7 +1558,7 @@ void BaseClient::onConnect(CON_ARGS)
 	}
 	catch (const std::exception& e)
 	{
-		LOG(e.what());
+		sky::Log(e.what());
 		return;
 	}
 
@@ -1572,7 +1572,7 @@ void BaseClient::onDisconnect(CON_ARGS)
 {
 	if (mState <= State::Disconnected)
 	{
-		LOG("cannot disconnect, not connected");
+		sky::Log("cannot disconnect, not connected");
 		return;
 	}
 	if (mChannel)
@@ -1587,7 +1587,7 @@ void BaseClient::onRetry(CON_ARGS)
 {
 	if (!mServerAdr.has_value())
 	{
-		LOG("cannot retry, no connection was made");
+		sky::Log("cannot retry, no connection was made");
 		return;
 	}
 	connect(mServerAdr.value());
@@ -1613,7 +1613,7 @@ void BaseClient::onReconnect(CON_ARGS)
 {
 	if (mState < State::Connected)
 	{
-		LOG("cannot reconnect, not connected");
+		sky::Log("cannot reconnect, not connected");
 		return;
 	}
 	resetGameResources();
@@ -1726,7 +1726,7 @@ void BaseClient::sendCommand(const std::string& command)
 {
 	if (mState < State::Connected)
 	{
-		LOG("cannot forward \"" + command + "\", not connected");
+		sky::Log("cannot forward \"" + command + "\", not connected");
 		return;
 	}
 
@@ -1737,14 +1737,14 @@ void BaseClient::sendCommand(const std::string& command)
 
 	mChannel->addReliableMessage(buf);
 
-	LOG("forward \"" + command + "\"");
+	sky::Log("forward \"" + command + "\"");
 }		
 
 void BaseClient::connect(const Network::Address& address)
 {
 	if (mState != State::Disconnected)
 	{
-		LOG("cannot connect, already connected");
+		sky::Log("cannot connect, already connected");
 		return;
 	}
 
@@ -1776,7 +1776,7 @@ void BaseClient::disconnect(const std::string& reason)
 
 	resetGameResources();
 
-	LOG("disconnected, reason: \"" + reason + "\"");
+	sky::Log("disconnected, reason: \"" + reason + "\"");
 
 	if (mDisconnectCallback)
 		mDisconnectCallback(reason);
@@ -1789,7 +1789,7 @@ void BaseClient::initializeConnection()
 	packet.adr = mServerAdr.value();
 	Common::BufferHelpers::WriteString(packet.buf, "getchallenge steam");
 	sendConnectionlessPacket(packet);
-	LOG("initializing connection to " + mServerAdr.value().toString());
+	sky::Log("initializing connection to " + mServerAdr.value().toString());
 }
 
 bool BaseClient::isPlayerIndex(int value) const

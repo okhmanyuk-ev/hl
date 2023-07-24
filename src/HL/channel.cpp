@@ -156,7 +156,7 @@ void Channel::process(BitBuffer& msg)
 		return; // duplicate packet
 
 	if (seq > mIncomingSequence + 1)
-		LOGCF("channel: dropped {} packet(s)", Console::Color::Red, seq - mIncomingSequence);
+		sky::Log(Console::Color::Red, "channel: dropped {} packet(s)", seq - mIncomingSequence);
 
 	mIncomingSequence = seq;
 	mIncomingAcknowledgement = ack;
