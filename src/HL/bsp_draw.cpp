@@ -17,6 +17,8 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 
 	std::vector<skygfx::utils::Mesh::Vertex> my_vertices;
 
+	std::unordered_map<TexId, std::vector<skygfx::utils::DrawVerticesCommand>> vertices_drawcalls;
+
 	for (auto& face : faces)
 	{
 		auto texinfo = texinfos[face.texinfo];
@@ -79,7 +81,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 			.vertex_count = vertex_count,
 			.vertex_offset = vertex_offset
 		};
-		mDrawcalls[tex_id].push_back(draw_command);
+		vertices_drawcalls[tex_id].push_back(draw_command);
 	}
 
 	mMesh.setVertices(my_vertices);
@@ -92,22 +94,37 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 	};
 	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, skygfx::Format::Byte4, pixels.data());
 
-	for (const auto& [tex_id, draw_commands] : mDrawcalls)
+	skygfx::utils::Mesh::Indices indices;
+
+	for (const auto& [tex_id, draw_commands] : vertices_drawcalls)
 	{
-		auto color_texture = mTextures.contains(tex_id) ? mTextures.at(tex_id).get() : mDefaultTexture.get();
+		skygfx::utils::DrawIndexedVerticesCommand draw_command;
+		draw_command.index_offset = (uint32_t)indices.size();
+
 		for (const auto& draw_command : draw_commands)
 		{
-			auto model = skygfx::utils::Model();
-			model.mesh = &mMesh;
-			model.color_texture = color_texture;
-			model.draw_command = draw_command;
-			model.matrix = mModelMatrix;
-			model.texture_address = skygfx::TextureAddress::Wrap;
-			model.cull_mode = skygfx::CullMode::Back;
-			model.depth_mode = skygfx::ComparisonFunc::LessEqual;
-			mModels.push_back(model);
+			auto start = draw_command.vertex_offset;
+			auto count = draw_command.vertex_count.value();
+			for (uint32_t i = start; i < count + start; i++)
+			{
+				indices.push_back(i);
+			}
 		}
+
+		draw_command.index_count = (uint32_t)indices.size() - draw_command.index_offset;
+
+		auto model = skygfx::utils::Model();
+		model.mesh = &mMesh;
+		model.color_texture = mTextures.contains(tex_id) ? mTextures.at(tex_id).get() : mDefaultTexture.get();
+		model.draw_command = draw_command;
+		model.matrix = mModelMatrix;
+		model.texture_address = skygfx::TextureAddress::Wrap;
+		model.cull_mode = skygfx::CullMode::Back;
+		model.depth_mode = skygfx::ComparisonFunc::LessEqual;
+		mModels.push_back(model);
 	}
+
+	mMesh.setIndices(indices);
 }
 
 void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,

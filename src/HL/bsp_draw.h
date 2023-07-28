@@ -24,7 +24,6 @@ namespace HL
 	private:
 		glm::mat4 mModelMatrix;
 		skygfx::utils::Mesh mMesh;
-		std::unordered_map<TexId, std::vector<skygfx::utils::DrawVerticesCommand>> mDrawcalls;
 		std::unordered_map<TexId, std::shared_ptr<skygfx::Texture>> mTextures;
 		std::vector<skygfx::utils::Light> mLights;
 		std::shared_ptr<skygfx::Texture> mDefaultTexture;
