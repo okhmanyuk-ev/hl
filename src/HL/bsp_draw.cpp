@@ -113,7 +113,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 
 		draw_command.index_count = (uint32_t)indices.size() - draw_command.index_offset;
 
-		auto model = skygfx::utils::Model();
+		skygfx::utils::Model model;
 		model.mesh = &mMesh;
 		model.color_texture = mTextures.contains(tex_id) ? mTextures.at(tex_id).get() : mDefaultTexture.get();
 		model.draw_command = draw_command;
@@ -121,6 +121,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 		model.texture_address = skygfx::TextureAddress::Wrap;
 		model.cull_mode = skygfx::CullMode::Back;
 		model.depth_mode = skygfx::ComparisonFunc::LessEqual;
+		model.sampler = mTextures.contains(tex_id) ? skygfx::Sampler::Linear : skygfx::Sampler::Nearest;
 		mModels.push_back(model);
 	}
 
@@ -138,9 +139,7 @@ void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3
 		.fov = fov
 	};
 
-	RENDERER->setRenderTarget(target);
-	skygfx::SetSampler(mTextures.empty() ? skygfx::Sampler::Nearest : skygfx::Sampler::Linear);
-	RENDERER->clear();
-
-	skygfx::utils::DrawScene(camera, mModels, mLights);
+	skygfx::utils::DrawScene(target.get(), camera, mModels, mLights, {
+		.clear_target = true
+	});
 }

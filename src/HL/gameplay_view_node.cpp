@@ -98,9 +98,11 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto node = std::make_shared<GenericDrawNode>();
 		node->setStretch(1.0f);
 		node->setDrawCallback([node, start_scr, end_scr, color] {
-			GRAPHICS->draw(skygfx::Topology::LineList, {
-				{ { start_scr, 0.0f }, color },
-				{ { end_scr, 0.0f }, color }
+			GRAPHICS->draw(nullptr, nullptr, [&](skygfx::utils::MeshBuilder& mesh) {
+				mesh.begin(skygfx::utils::MeshBuilder::Mode::Lines);
+				mesh.vertex(skygfx::vertex::PositionColor{ { start_scr, 0.0f }, color });
+				mesh.vertex(skygfx::vertex::PositionColor{ { end_scr, 0.0f }, color });
+				mesh.end();
 			});
 		});
 		node->runAction(Actions::Collection::Delayed((float)lifetime / 10.0f,
