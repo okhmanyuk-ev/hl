@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/engine.h>
-#include <network/packet.h>
 #include <network/system.h>
 #include <common/bitbuffer.h>
 #include <map>

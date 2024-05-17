@@ -100,8 +100,8 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		node->setDrawCallback([node, start_scr, end_scr, color] {
 			GRAPHICS->draw(nullptr, nullptr, [&](skygfx::utils::MeshBuilder& mesh) {
 				mesh.begin(skygfx::utils::MeshBuilder::Mode::Lines);
-				mesh.vertex(skygfx::vertex::PositionColor{ { start_scr, 0.0f }, color });
-				mesh.vertex(skygfx::vertex::PositionColor{ { end_scr, 0.0f }, color });
+				mesh.vertex(skygfx::utils::Mesh::Vertex{ .pos = { start_scr, 0.0f }, .color = color });
+				mesh.vertex(skygfx::utils::Mesh::Vertex{ .pos = { end_scr, 0.0f }, .color = color });
 				mesh.end();
 			});
 		});
@@ -303,8 +303,8 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		auto node = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 		node->setSize(4.0f);
 		node->setPivot(0.5f);
-		node->setPosition(IMSCENE->justAllocated() ? origin_scr : Common::Helpers::SmoothValue(node->getPosition(), origin_scr));
-		IMSCENE->dontKillUntilHaveChilds();
+		node->setPosition(IMSCENE->isFirstCall() ? origin_scr : Common::Helpers::SmoothValue(node->getPosition(), origin_scr));
+		IMSCENE->dontKillWhileHaveChilds();
 
 		auto body = IMSCENE->spawn<Scene::Rectangle>(*node);
 		body->setRotation(rotation);
@@ -397,14 +397,14 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	auto player = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
-	player->setPosition(IMSCENE->justAllocated() ? pos : Common::Helpers::SmoothValue(player->getPosition(), pos));
-	IMSCENE->dontKillUntilHaveChilds();
+	player->setPosition(IMSCENE->isFirstCall() ? pos : Common::Helpers::SmoothValue(player->getPosition(), pos));
+	IMSCENE->dontKillWhileHaveChilds();
 
 	auto body = IMSCENE->spawn<Scene::Circle>(*player);
 	if (angles.has_value())
 	{
 		auto rotation = worldToScreenAngles(angles.value());
-		body->setRotation(IMSCENE->justAllocated() ? rotation : Common::Helpers::SmoothRotation(body->getRotation(), rotation));
+		body->setRotation(IMSCENE->isFirstCall() ? rotation : Common::Helpers::SmoothRotation(body->getRotation(), rotation));
 	}
 	body->setStretch(1.0f);
 	body->setPivot(0.5f);
@@ -430,7 +430,7 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		auto label = IMSCENE->spawn<Scene::Label>(*player, key);
 		label->setPivot(0.5f);
 		label->setAnchor({ 0.5f, 0.0f });
-		label->setY(IMSCENE->justAllocated() ? y : Common::Helpers::SmoothValue(label->getY(), y));
+		label->setY(IMSCENE->isFirstCall() ? y : Common::Helpers::SmoothValue(label->getY(), y));
 		label->setFontSize(10.0f);
 		label->setText(text);
 		IMSCENE->showAndHideWithScale();
