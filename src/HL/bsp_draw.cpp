@@ -17,7 +17,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 
 	std::vector<skygfx::utils::Mesh::Vertex> my_vertices;
 
-	std::unordered_map<TexId, std::vector<skygfx::utils::DrawVerticesCommand>> vertices_drawcalls;
+	std::unordered_map<TexId, std::vector<skygfx::utils::commands::DrawMesh::DrawVerticesCommand>> vertices_drawcalls;
 
 	for (auto& face : faces)
 	{
@@ -46,7 +46,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 
 			if (face.side)
 				v.normal = -v.normal;
-			
+
 			glm::vec3 ti0 = {
 				texinfo.vecs[0][0],
 				texinfo.vecs[0][1],
@@ -64,7 +64,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 
 			v.texcoord.x = s * is;
 			v.texcoord.y = t * it;
-		
+
 			if (vertex_count >= 3) // triangulation
 			{
 				vertex_count += 2;
@@ -77,7 +77,7 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 		}
 
 		auto tex_id = texinfo._miptex;
-		auto draw_command = skygfx::utils::DrawVerticesCommand{
+		auto draw_command = skygfx::utils::commands::DrawMesh::DrawVerticesCommand{
 			.vertex_count = vertex_count,
 			.vertex_offset = vertex_offset
 		};
@@ -92,13 +92,13 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 		Graphics::Color::ToUInt32(Graphics::Color::Gray),
 		Graphics::Color::ToUInt32(Graphics::Color::White),
 	};
-	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, skygfx::Format::Byte4, pixels.data());
+	mDefaultTexture = std::make_shared<skygfx::Texture>(2, 2, skygfx::PixelFormat::RGBA8UNorm, pixels.data());
 
 	skygfx::utils::Mesh::Indices indices;
 
 	for (const auto& [tex_id, draw_commands] : vertices_drawcalls)
 	{
-		skygfx::utils::DrawIndexedVerticesCommand draw_command;
+		skygfx::utils::commands::DrawMesh::DrawIndexedVerticesCommand draw_command;
 		draw_command.index_offset = (uint32_t)indices.size();
 
 		for (const auto& draw_command : draw_commands)

@@ -14,7 +14,7 @@ bool GameMod::isPlayerAlive(int index) const
 	return true;
 }
 
-void GameMod::readMessage(const std::string& name, BitBuffer& msg)
+void GameMod::readMessage(const std::string& name, sky::BitBuffer& msg)
 {
 	if (!mReadCallbacks.contains(name))
 		return;
@@ -55,9 +55,9 @@ CounterStrike::CounterStrike()
 	AddCallback("SayText", ReadSayText)
 	AddCallback("MOTD", ReadMOTD)
 	*/
-	addReadCallback("TeamInfo", [this](BitBuffer& msg) {
+	addReadCallback("TeamInfo", [this](sky::BitBuffer& msg) {
 		auto player_id = msg.read<uint8_t>();
-		auto team = Common::BufferHelpers::ReadString(msg);
+		auto team = sky::bitbuffer_helpers::ReadString(msg);
 		mTeamInfo[player_id] = magic_enum::enum_cast<Team>(team).value_or(Team::UNASSIGNED);
 	});
 	/*
@@ -67,7 +67,7 @@ CounterStrike::CounterStrike()
 	AddCallback("Money", ReadMoney)
 	AddCallback("TeamScore", ReadTeamScore)
 	*/
-	addReadCallback("ScoreAttrib", [this](BitBuffer& msg) {
+	addReadCallback("ScoreAttrib", [this](sky::BitBuffer& msg) {
 		auto player_id = msg.read<uint8_t>();
 		auto status = msg.read<uint8_t>();
 		mScoreStatus[player_id] = status;
@@ -94,11 +94,11 @@ CounterStrike::CounterStrike()
 	AddCallback("SendAudio", ReadSendAudio)
 	AddCallback("Geiger", ReadGeiger)
 	*/
-	addReadCallback("Radar", [this](BitBuffer& msg) {
+	addReadCallback("Radar", [this](sky::BitBuffer& msg) {
 		auto player_id = msg.read<uint8_t>();
-		auto x = Common::BufferHelpers::ReadCoord(msg);
-		auto y = Common::BufferHelpers::ReadCoord(msg);
-		auto z = Common::BufferHelpers::ReadCoord(msg);
+		auto x = sky::bitbuffer_helpers::ReadCoord(msg);
+		auto y = sky::bitbuffer_helpers::ReadCoord(msg);
+		auto z = sky::bitbuffer_helpers::ReadCoord(msg);
 		mRadar[player_id] = { x, y, z };
 	});
 	/*

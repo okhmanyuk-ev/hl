@@ -13,7 +13,7 @@ const std::string& BSPFile::Entity::getClassName() const
 
 void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 {
-	BitBuffer bf;
+	sky::BitBuffer bf;
     auto asset = Platform::Asset(fileName, HL_ASSET_STORAGE);
 
 	bf.write(asset.getMemory(), asset.getSize());
@@ -51,7 +51,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 	mPlanes.resize(header.lumps[LUMP_PLANES].filelen / sizeof(dplane_t));
 	bf.setPosition(header.lumps[LUMP_PLANES].fileofs);
-	
+
 	//bf.read(m_Planes.data(), header.lumps[LUMP_PLANES].filelen);
 
 	for (auto& plane : mPlanes)
@@ -198,7 +198,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 			auto s = entities.substr(0, entities.find("}"));
 
 			Entity e;
-			
+
 			while (s.find("\"") != std::string::npos)
 			{
 				s = s.substr(s.find("\"") + 1);
@@ -244,7 +244,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 	};
 
 	auto str = Console::System::MakeTokensFromString(findEntity("worldspawn")[0]->args.at("wad"));
-	
+
 	auto wads = split(str[0], ';');
 
 	if (loadWad)
@@ -265,14 +265,14 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 	}
 
 	makeHull0();
-		
+
 	// set up the submodels (FIXME: this is confusing)
 	for (int i = 0; i < mModels.size(); i++)
 	{
 		//auto bm = &m_Models[i];
 
 	//	m_Hulls[0].firstclipnode = bm->headnode[0];
-		
+
 		for (int j = 1; j < MAX_MAP_HULLS; j++)
 		{
 	//		m_Hulls[j].firstclipnode = bm->headnode[j];
@@ -329,7 +329,7 @@ void BSPFile::makeHull0()
 	mnode_t *in, *child;
 	dclipnode_t *out;
 	int i, j, count;
-	
+
 	auto& hull = m_Hulls[0];
 
 	in = mNodes.data();
@@ -401,7 +401,7 @@ trace_t BSPFile::traceLine(const glm::vec3& start, const glm::vec3& end, const s
 bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p2f, const glm::vec3& p1, const glm::vec3& p2, trace_t& trace) const
 {
 	const float Epsilon = 0.03125f;
-	
+
 	if (num >= 0)
 	{
 		assert(num >= hull.firstclipnode);
@@ -410,7 +410,7 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 
 		const auto& node = hull.clipnodes[num];
 		const auto& plane = hull.planes[node.planenum];
-	
+
 		float t1 = 0.0f;
 		float t2 = 0.0f;
 
@@ -425,26 +425,26 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 			t2 = p2[plane.type] - plane.dist;
 		}
 
-		if (t1 >= 0.0f && t2 >= 0.0f) 
+		if (t1 >= 0.0f && t2 >= 0.0f)
 			return recursiveHullCheck(hull, node.children[0], p1f, p2f, p1, p2, trace);
-	
+
 		float midf = 0.0;
 
 		if (t1 >= 0.0f)
 			midf = t1 - Epsilon;
-		else if (t2 < 0.0f) 
+		else if (t2 < 0.0f)
 			return recursiveHullCheck(hull, node.children[1], p1f, p2f, p1, p2, trace);
 		else
 			midf = t1 + Epsilon;
-		
+
 		midf = midf / (t1 - t2);
 
 		if (std::isnan(midf))
 			return false;
-			
+
 		midf = std::clamp(midf, 0.0f, 1.0f);
 
-		auto frac = (p2f - p1f) * midf + p1f;			
+		auto frac = (p2f - p1f) * midf + p1f;
 		auto mid = (p2 - p1) * midf + p1;
 		auto side = t1 < 0.0f ? 1 : 0;
 
@@ -471,12 +471,12 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 		while (hullPointContents(hull, hull.firstclipnode, mid) == CONTENTS_SOLID)
 		{
 			midf -= 0.1f;
-						
+
 			if (midf < 0.0f)
 				break;
-			
-			frac = (p2f - p1f) * midf + p1f;						
-			mid = (p2 - p1) * midf + p1;						
+
+			frac = (p2f - p1f) * midf + p1f;
+			mid = (p2 - p1) * midf + p1;
 		}
 
 		trace.fraction = frac;
@@ -491,7 +491,7 @@ bool BSPFile::recursiveHullCheck(const hull_t& hull, int num, float p1f, float p
 	else
 	{
 		trace.allsolid = false;
-		
+
 		if (num == CONTENTS_EMPTY)
 			trace.inopen = true;
 		else if (num != CONTENTS_TRANSLUCENT)
@@ -507,12 +507,12 @@ int BSPFile::hullPointContents(const hull_t& hull, int num, const glm::vec3& poi
 	{
 		assert(num >= hull.firstclipnode);
 		assert(num <= hull.lastclipnode);
-		
+
 		auto& node = hull.clipnodes[num];
 		auto& plane = hull.planes[node.planenum];
-		
+
 		float d = 0.0f;
-		
+
 		if (plane.type >= 3)
 			d = glm::dot(point, plane.normal) - plane.dist;
 		else
@@ -520,7 +520,7 @@ int BSPFile::hullPointContents(const hull_t& hull, int num, const glm::vec3& poi
 
 		num = node.children[d < 0 ? 1 : 0];
 	}
-	
+
 	return num;
 }
 

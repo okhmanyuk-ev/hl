@@ -8,7 +8,7 @@ using namespace HL;
 
 Channel::Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler) :
 	mSocket(socket),
-	mReadHandler(readHandler), 
+	mReadHandler(readHandler),
 	mWriteHandler(writeHandler),
 	mFileHandler(fileHandler)
 {
@@ -28,7 +28,7 @@ void Channel::onFrame()
 void Channel::transmit()
 {
 	mOutgoingSequence++;
-		
+
 	bool has_fragments = false;
 	bool has_reliable_messages = false;
 
@@ -46,31 +46,30 @@ void Channel::transmit()
 	int seq = (int)mOutgoingSequence | (has_fragments << 30) | (rel << 31);
 	int ack = (int)mIncomingSequence | (mOutgoingReliable << 31);
 
-	BitBuffer msg;
-		
+	sky::BitBuffer msg;
 	msg.write(seq);
 	msg.write(ack);
 
 	if (has_fragments)
 		writeFragments(msg);
-	
+
 	if (has_reliable_messages)
 		writeReliableMessages(msg);
-	
+
 	mWriteHandler(msg);
 
 	while (msg.getSize() < 16)
-		msg.write<uint8_t>(1); 
-		
+		msg.write<uint8_t>(1);
+
 	Encoder::Munge2((void*)((size_t)msg.getMemory() + 8), msg.getSize() - 8, seq & 0xFF);
-		
+
 	Network::Packet pack;
 	pack.adr = mAddress;
-	Common::BufferHelpers::WriteToBuffer(msg, pack.buf);
+	sky::bitbuffer_helpers::WriteToBuffer(msg, pack.buf);
 	mSocket->sendPacket(pack);
 }
 
-void Channel::writeFragments(BitBuffer& msg)
+void Channel::writeFragments(sky::BitBuffer& msg)
 {
 	auto has_frag_buf = !mOutgoingFragBuffers.empty();
 
@@ -108,7 +107,7 @@ void Channel::writeFragments(BitBuffer& msg)
 	// write file frag buf here
 }
 
-void Channel::writeReliableMessages(BitBuffer& msg)
+void Channel::writeReliableMessages(sky::BitBuffer& msg)
 {
 	bool first = true;
 
@@ -116,33 +115,33 @@ void Channel::writeReliableMessages(BitBuffer& msg)
 	{
 		if (msg.getSize() > 1024 && !first)
 			break;
-			
-		first = false; 
 
-		Common::BufferHelpers::WriteToBuffer(message, msg);
+		first = false;
+
+		sky::bitbuffer_helpers::WriteToBuffer(message, msg);
 
 		mReliableSent++;
 	}
 }
 
-void Channel::process(BitBuffer& msg)
+void Channel::process(sky::BitBuffer& msg)
 {
 	mIncomingTime = Clock::Now();
 
 	auto seq = msg.read<uint32_t>();
 	auto ack = msg.read<uint32_t>();
-		
+
 	bool rel = seq >> 31;
 	bool relAck = ack >> 31;
 
 	bool frag = seq & (1UL << 30);
 	bool security = ack & (1UL << 30);
-		
+
 	if (security)
 		return;
 
 	Encoder::UnMunge2((void*)((size_t)msg.getMemory() + 8), msg.getSize() - 8, seq & 0xFF);
-		
+
 	seq &= ~(1 << 31);
 	seq &= ~(1 << 30);
 
@@ -177,13 +176,13 @@ void Channel::process(BitBuffer& msg)
 				{
 					frags_buffer.buffers.pop_front();
 				}
-				
+
 				int total = frags_buffer.total;
 				int count = total - frags_buffer.buffers.size();
 				int index = total << 16;
 				int percent = static_cast<int>((static_cast<float>(count) / static_cast<float>(total)) * 100.0f);
 				STATS_INDICATE_GROUP("netchan_frag", fmt::format("out frag {}", index), fmt::format("{}/{} ({}%)", count, total, percent));
-				
+
 				if (frags_buffer.buffers.empty())
 				{
 					mOutgoingFragBuffers.pop_front();
@@ -210,7 +209,7 @@ void Channel::process(BitBuffer& msg)
 	mReadHandler(msg);
 }
 
-void Channel::readFragments(BitBuffer& msg)
+void Channel::readFragments(sky::BitBuffer& msg)
 {
 	size_t size = msg.getSize();
 
@@ -221,7 +220,7 @@ void Channel::readFragments(BitBuffer& msg)
 		readFileFragments(msg, size - msg.getSize());
 }
 
-void Channel::readNormalFragments(BitBuffer& msg)
+void Channel::readNormalFragments(sky::BitBuffer& msg)
 {
 	auto sequence = msg.read<int32_t>();
 	auto offset = msg.read<int16_t>();
@@ -230,14 +229,14 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	int index = sequence << 16;
 	int count = sequence >> 16;
 	int total = sequence & 0xFFFF;
-	
+
 	Utils::dlog("index: {} ({}/{}), offset: {}, size: {}", index, count, total, offset, size);
-	
+
 	int percent = static_cast<int>((static_cast<float>(count) / static_cast<float>(total)) * 100.0f);
 	STATS_INDICATE_GROUP("netchan_frag", fmt::format("in frag {}", index), fmt::format("{}/{} ({}%)", count, total, percent));
 
 	std::shared_ptr<FragBuffer> fb = nullptr;
-		
+
 	// search frag buffer
 
 	if (mNormalFragBuffers.contains(index))
@@ -284,35 +283,35 @@ void Channel::readNormalFragments(BitBuffer& msg)
 
 	// check for completion
 
-	bool completed = std::all_of(fb->frags.begin(), fb->frags.end(), [](const auto& frag) { 
-		return frag.completed; 
+	bool completed = std::all_of(fb->frags.begin(), fb->frags.end(), [](const auto& frag) {
+		return frag.completed;
 	});
-	
+
 	if (completed)
 	{
-		BitBuffer buf;
+		sky::BitBuffer buf;
 
 		for (auto& f : fb->frags)
 		{
-			Common::BufferHelpers::WriteToBuffer(f.buffer, buf);
+			sky::bitbuffer_helpers::WriteToBuffer(f.buffer, buf);
 		}
 
 		buf.toStart();
 
 		Utils::dlog("fragments completed (size: {})", buf.getSize());
-		
-		if (buf.getRemaining() >= 3 && Common::BufferHelpers::ReadString(buf) == "BZ2")
+
+		if (buf.getRemaining() >= 3 && sky::bitbuffer_helpers::ReadString(buf) == "BZ2")
 		{
 			uint32_t dst_len = 65536;
-			BitBuffer dst_buf;
+			sky::BitBuffer dst_buf;
 			dst_buf.setSize(dst_len);
-			
+
 			auto dst = (char*)dst_buf.getMemory();
 			auto src = (char*)((size_t)buf.getMemory() + buf.getPosition());
 			auto src_len = (unsigned int)(buf.getSize() - buf.getPosition());
 
 			BZ2_bzBuffToBuffDecompress(dst, &dst_len, src, src_len, 1, 0);
-			
+
 			buf.clear();
 			buf.write(dst_buf.getMemory(), dst_len);
 
@@ -320,7 +319,7 @@ void Channel::readNormalFragments(BitBuffer& msg)
 		}
 
 		// read just completed fragbuf as normal messages
-		
+
 		buf.toStart();
 		mReadHandler(buf);
 
@@ -330,7 +329,7 @@ void Channel::readNormalFragments(BitBuffer& msg)
 	}
 }
 
-void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
+void Channel::readFileFragments(sky::BitBuffer& msg, size_t normalSize)
 {
 	auto sequence = msg.read<int32_t>();
 	auto offset = msg.read<int16_t>();
@@ -392,22 +391,22 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 	{
 		//std::cout << total << " file fragments completed" << std::endl;
 
-		BitBuffer buf;
+		sky::BitBuffer buf;
 
 		for (auto& f : fb->frags)
 		{
-			Common::BufferHelpers::WriteToBuffer(f.buffer, buf);
+			sky::bitbuffer_helpers::WriteToBuffer(f.buffer, buf);
 		}
 
 		buf.toStart();
 
 		Utils::dlog("fragments completed (size: {})", buf.getSize());
 
-		auto fileName = Common::BufferHelpers::ReadString(buf);
-		bool compressed = Common::BufferHelpers::ReadString(buf) == "bz2";
+		auto fileName = sky::bitbuffer_helpers::ReadString(buf);
+		bool compressed = sky::bitbuffer_helpers::ReadString(buf) == "bz2";
 		uint32_t size = buf.read<uint32_t>();
 
-		BitBuffer filebuf;
+		sky::BitBuffer filebuf;
 
 		filebuf.setSize(size);
 
@@ -433,12 +432,10 @@ void Channel::readFileFragments(BitBuffer& msg, size_t normalSize)
 	}
 }
 
-void Channel::addReliableMessage(BitBuffer& msg)
+void Channel::addReliableMessage(sky::BitBuffer& msg)
 {
-	auto bf = BitBuffer();
-
-	Common::BufferHelpers::WriteToBuffer(msg, bf);
-
+	auto bf = sky::BitBuffer();
+	sky::bitbuffer_helpers::WriteToBuffer(msg, bf);
 	mReliableMessages.push_back(bf);
 }
 
@@ -446,7 +443,7 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 {
 	assert(!mReliableMessages.empty());
 
-	BitBuffer msg;
+	sky::BitBuffer msg;
 
 	for (const auto& reliable : mReliableMessages)
 	{
@@ -457,7 +454,7 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 	{
 		unsigned int dst_len = 65535;
 
-		BitBuffer temp_buf;
+		sky::BitBuffer temp_buf;
 		temp_buf.setSize(dst_len);
 
 		auto dst = (char*)temp_buf.getMemory();
@@ -466,7 +463,7 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 		auto res = BZ2_bzBuffToBuffCompress(dst, &dst_len, src, src_len, 9, 0, 30); // TODO: wtf is last three arguments?
 
 		msg.clear();
-		Common::BufferHelpers::WriteString(msg, "BZ2");
+		sky::bitbuffer_helpers::WriteString(msg, "BZ2");
 		msg.write(temp_buf.getMemory(), dst_len);
 
 		Utils::dlog("compress {} -> {}", src_len, dst_len);
@@ -480,7 +477,7 @@ void Channel::fragmentateReliableBuffer(int fragment_size, bool compress)
 
 	while (msg.hasRemaining())
 	{
-		BitBuffer temp_buf;
+		sky::BitBuffer temp_buf;
 
 		for (int i = 0; i < fragment_size; i++)
 		{

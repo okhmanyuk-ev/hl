@@ -12,7 +12,7 @@ namespace
 	bool ReadResultValue(const Delta::ReadFields& fields, const std::string& name, U& value) {
 		if (fields.count(name) == 0)
 			return false;
-		
+
 		value = static_cast<U>(std::get<T>(fields.at(name)));
 		return true;
 	};
@@ -23,40 +23,37 @@ void Delta::clear()
 	mTables.clear();
 }
 
-void Delta::add(BitBuffer& msg, const std::string& name, uint32_t fieldCount)
+void Delta::add(sky::BitBuffer& msg, const std::string& name, uint32_t fieldCount)
 {
 	Table table;
 
 	for (uint32_t i = 0; i < fieldCount; i++)
 	{
 		Field field;
-	
 		field.bits = 1;
 		field.scale = 1.0f;
 		field.pscale = 1.0f;
-		
 		read(msg, field);
-		
 		table.push_back(field);
 	}
 
 	mTables.insert({ name, table });
 }
 
-Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
+Delta::ReadFields Delta::read(sky::BitBuffer& msg, const Table& table)
 {
 	uint64_t marks = 0;
 	uint32_t count = msg.readBits(3);
 
 	msg.read(&marks, count);
-		
+
 	ReadFields result;
 
 	for (int i = 0; i < table.size(); i++)
 	{
 		if (!(marks & (1ULL << i)))
 			continue;
-		
+
 		const auto& field = table.at(i);
 
 		bool sign = field.type & DT_SIGNED;
@@ -71,18 +68,18 @@ Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 		case DT_INTEGER:
 		{
 			if (sign)
-				resultField = static_cast<int64_t>(Common::BufferHelpers::ReadSBits(msg, field.bits));
+				resultField = static_cast<int64_t>(sky::bitbuffer_helpers::ReadSBits(msg, field.bits));
 			else
 				resultField = static_cast<int64_t>(msg.readBits(field.bits));
 
 			assert(field.scale == 1.0f);
 			assert(field.pscale == 1.0f);
 		}
-		
+
 		break;
 
 		case DT_TIMEWINDOW_8:
-			resultField = static_cast<float>(Common::BufferHelpers::ReadSBits(msg, 8));
+			resultField = static_cast<float>(sky::bitbuffer_helpers::ReadSBits(msg, 8));
 			break;
 
 		case DT_TIMEWINDOW_BIG:
@@ -91,7 +88,7 @@ Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 			float value = 0.0f;
 
 			if (sign)
-				value = (float)Common::BufferHelpers::ReadSBits(msg, field.bits);
+				value = (float)sky::bitbuffer_helpers::ReadSBits(msg, field.bits);
 			else
 				value = (float)msg.readBits(field.bits);
 
@@ -102,13 +99,13 @@ Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 			break;
 		}
 		case DT_ANGLE:
-			resultField = Common::BufferHelpers::ReadBitAngle(msg, field.bits);
+			resultField = sky::bitbuffer_helpers::ReadBitAngle(msg, field.bits);
 			break;
 
 		case DT_STRING:
-			resultField = Common::BufferHelpers::ReadString(msg);
+			resultField = sky::bitbuffer_helpers::ReadString(msg);
 			break;
-		
+
 		default:
 			throw std::runtime_error(("unknown delta field: " + std::to_string(type)).c_str());
 			break;
@@ -120,10 +117,10 @@ Delta::ReadFields Delta::read(BitBuffer& msg, const Table& table)
 	return result;
 }
 
-void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
+void Delta::write(sky::BitBuffer& msg, const Table& table, const WriteFields& fields)
 {
 	uint64_t marks = 0;
-	
+
 	int lastMark = -1;
 
 	for (const auto& [index, field] : fields)
@@ -132,18 +129,18 @@ void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 		lastMark = index;
 	}
 
-	uint32_t count = 0; 
+	uint32_t count = 0;
 
 	if (lastMark != -1)
 		count = (lastMark >> 3) + 1;
 
 	msg.writeBits(count, 3);
 	msg.write(&marks, count);
-	
+
 	for (const auto& [index, field] : fields)
 	{
 		const auto& normal = table.at(index);
-		
+
 		bool sign = normal.type & DT_SIGNED;
 		int type = normal.type & ~DT_SIGNED;
 
@@ -157,14 +154,14 @@ void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 			assert(normal.pscale == 1.0f);
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, static_cast<int32_t>(std::get<int64_t>(field)), normal.bits);
+				sky::bitbuffer_helpers::WriteSBits(msg, static_cast<int32_t>(std::get<int64_t>(field)), normal.bits);
 			else
 				msg.writeBits(static_cast<uint32_t>(std::get<int64_t>(field)), normal.bits);
 		}
 		break;
 
 		case DT_TIMEWINDOW_8:
-			Common::BufferHelpers::WriteSBits(msg, (int)std::get<float>(field), 8); // TODO: time fix
+			sky::bitbuffer_helpers::WriteSBits(msg, (int)std::get<float>(field), 8); // TODO: time fix
 			break;
 
 		case DT_TIMEWINDOW_BIG:
@@ -176,18 +173,18 @@ void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 			value *= normal.pscale;
 
 			if (sign)
-				Common::BufferHelpers::WriteSBits(msg, (int32_t)value, normal.bits);
+				sky::bitbuffer_helpers::WriteSBits(msg, (int32_t)value, normal.bits);
 			else
 				msg.writeBits((uint32_t)value, normal.bits);
 		}
 		break;
 
 		case DT_ANGLE:
-			Common::BufferHelpers::WriteBitAngle(msg, std::get<float>(field), normal.bits);
+			sky::bitbuffer_helpers::WriteBitAngle(msg, std::get<float>(field), normal.bits);
 			break;
 
 		case DT_STRING:
-			Common::BufferHelpers::WriteString(msg, std::get<std::string>(field));
+			sky::bitbuffer_helpers::WriteString(msg, std::get<std::string>(field));
 			break;
 
 		default:
@@ -197,7 +194,7 @@ void Delta::write(BitBuffer& msg, const Table& table, const WriteFields& fields)
 	}
 }
 
-void Delta::read(BitBuffer& msg, Field& field)
+void Delta::read(sky::BitBuffer& msg, Field& field)
 {
 	static const Delta::Table MetaTable = {
 		{ "fieldType", DT_INTEGER, 32, 1.0f, 1.0f },
@@ -222,13 +219,13 @@ void Delta::read(BitBuffer& msg, Field& field)
 	READ_INT(significant_bits, bits);
 	READ_FLOAT(premultiply, scale);
 	READ_FLOAT(postmultiply, pscale);
-	
+
 #undef READ_INT
 #undef READ_FLOAT
 #undef READ_STR
 }
 
-void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
+void Delta::readClientData(sky::BitBuffer& msg, Protocol::ClientData& clientData)
 {
 	auto result = read(msg, mTables.at("clientdata_t"));
 
@@ -243,17 +240,17 @@ void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
 	READ_FLOAT(origin[0]);
 	READ_FLOAT(origin[1]);
 	READ_FLOAT(origin[2]);
-	
+
 	READ_FLOAT(velocity[0]);
 	READ_FLOAT(velocity[1]);
 	READ_FLOAT(velocity[2]);
 
 	READ_INT(viewmodel);
-	
+
 	READ_FLOAT(punchangle[0]);
 	READ_FLOAT(punchangle[1]);
 	READ_FLOAT(punchangle[2]);
-	
+
 	READ_INT(flags);
 	READ_INT(waterlevel);
 	READ_INT(watertype);
@@ -276,7 +273,7 @@ void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
 	READ_FLOAT(fov);
 
 	READ_INT(weaponanim);
-	
+
 	READ_INT(m_iId);
 	READ_INT(ammo_shells);
 	READ_INT(ammo_nails);
@@ -285,11 +282,11 @@ void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
 	READ_FLOAT(m_flNextAttack);
 
 	READ_INT(tfstate);
-	
+
 	READ_INT(pushmsec);
 
 	READ_INT(deadflag);
-	
+
 	READ_STR(physinfo);
 
 	READ_INT(iuser1);
@@ -327,7 +324,7 @@ void Delta::readClientData(BitBuffer& msg, Protocol::ClientData& clientData)
 #undef READ_STR
 }
 
-void Delta::readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData)
+void Delta::readWeaponData(sky::BitBuffer& msg, Protocol::WeaponData& weaponData)
 {
 	auto result = read(msg, mTables.at("weapon_data_t"));
 
@@ -341,11 +338,11 @@ void Delta::readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData)
 
 	READ_INT(m_iId);
 	READ_INT(m_iClip);
-		
+
 	READ_FLOAT(m_flNextPrimaryAttack);
 	READ_FLOAT(m_flNextSecondaryAttack);
 	READ_FLOAT(m_flTimeWeaponIdle);
-		
+
 	READ_INT(m_fInReload);
 	READ_INT(m_fInSpecialReload);
 	READ_FLOAT(m_flNextReload);
@@ -376,7 +373,7 @@ void Delta::readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData)
 #undef READ_STR
 }
 
-void Delta::readEvent(BitBuffer& msg, Protocol::EventArgs& evt)
+void Delta::readEvent(sky::BitBuffer& msg, Protocol::EventArgs& evt)
 {
 	auto result = read(msg, mTables.at("event_t"));
 
@@ -412,22 +409,22 @@ void Delta::readEvent(BitBuffer& msg, Protocol::EventArgs& evt)
 #undef READ_STR
 }
 
-void Delta::readEntityNormal(BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityNormal(sky::BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "entity_state_t");
 }
 
-void Delta::readEntityPlayer(BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityPlayer(sky::BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "entity_state_player_t");
 }
 
-void Delta::readEntityCustom(BitBuffer& msg, Protocol::Entity& entity)
+void Delta::readEntityCustom(sky::BitBuffer& msg, Protocol::Entity& entity)
 {
 	read(msg, entity, "custom_entity_state_t");
 }
 
-void Delta::read(BitBuffer& msg, Protocol::Entity& entity, const std::string& table)
+void Delta::read(sky::BitBuffer& msg, Protocol::Entity& entity, const std::string& table)
 {
 	auto result = read(msg, mTables.at(table));
 
@@ -564,7 +561,7 @@ void Delta::read(BitBuffer& msg, Protocol::Entity& entity, const std::string& ta
 #undef READ_STR
 };
 
-void Delta::writeUserCmd(BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
+void Delta::writeUserCmd(sky::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd)
 {
 #define S_TOTAL(X, Y, T, A) if (field.name == #X && newCmd.Y != oldCmd.Y) { assert(A); writeFields.insert({ i, (T)newCmd.Y }); }
 

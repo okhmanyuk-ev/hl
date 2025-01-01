@@ -7,11 +7,11 @@
 
 namespace HL
 {
-	class Networking 
+	class Networking
 	{
 	public:
 		Networking(uint16_t port = 0);
-		
+
 	protected:
 		virtual void readConnectionlessPacket(Network::Packet& packet) = 0;
 		virtual void readRegularPacket(Network::Packet& packet) = 0;
@@ -33,7 +33,7 @@ namespace HL
 	private:
 		struct Fragment
 		{
-			BitBuffer buffer;
+			sky::BitBuffer buffer;
 			bool completed = false;
 		};
 

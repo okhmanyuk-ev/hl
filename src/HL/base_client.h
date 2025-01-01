@@ -33,7 +33,7 @@ namespace HL
 
 	public:
 		void onFrame() override;
-	
+
 	protected:
 		void readConnectionlessPacket(Network::Packet& packet) override;
 		void readRegularPacket(Network::Packet& packet) override;
@@ -44,63 +44,63 @@ namespace HL
 		void readConnectionlessReject(Network::Packet& packet);
 
 	private:
-		void readRegularMessages(BitBuffer& msg);
-		void readRegularGameMessage(BitBuffer& msg, uint8_t index);
-		void receiveFile(std::string_view fileName, BitBuffer& msg);
+		void readRegularMessages(sky::BitBuffer& msg);
+		void readRegularGameMessage(sky::BitBuffer& msg, uint8_t index);
+		void receiveFile(std::string_view fileName, sky::BitBuffer& msg);
 
-		void readRegularDisconnect(BitBuffer& msg);
-		void readRegularEvent(BitBuffer& msg);
-		void readRegularVersion(BitBuffer& msg);
-		void readRegularSetView(BitBuffer& msg);
-		void readRegularSound(BitBuffer& msg);
-		void readRegularTime(BitBuffer& msg);
-		void readRegularPrint(BitBuffer& msg);
-		void readRegularStuffText(BitBuffer& msg);
-		void readRegularAngle(BitBuffer& msg);
-		void readRegularServerInfo(BitBuffer& msg);
-		void readRegularLightStyle(BitBuffer& msg);
-		void readRegularUserInfo(BitBuffer& msg);
-		void readRegularDeltaDescription(BitBuffer& msg);
-		void readRegularClientData(BitBuffer& msg);
-		void readRegularPings(BitBuffer& msg);
-		void readRegularEventReliable(BitBuffer& msg);
-		void readRegularSpawnBaseline(BitBuffer& msg);
-		void readRegularTempEntity(BitBuffer& msg);
-		void readRegularSignonNum(BitBuffer& msg);
-		void readRegularStaticSound(BitBuffer& msg);
-		void readRegularCDTrack(BitBuffer& msg);
-		void readRegularWeaponAnim(BitBuffer& msg);
-		void readRegularDecalName(BitBuffer& msg);
-		void readRegularRoomType(BitBuffer& msg);
-		void readRegularUserMsg(BitBuffer& msg);
-		void readRegularPacketEntities(BitBuffer& msg, bool delta);
-		void readRegularResourceList(BitBuffer& msg);
-		void readRegularMoveVars(BitBuffer& msg);
-		void readRegularResourceRequest(BitBuffer& msg);
-		void readRegularCustomization(BitBuffer& msg);
-		void readFileTxferFailed(BitBuffer& msg);
-		void readRegularHLTV(BitBuffer& msg);
-		void readRegularDirector(BitBuffer& msg);
-		void readRegularVoiceInit(BitBuffer& msg);
-		void readRegularSendExtraInfo(BitBuffer& msg);
-		void readRegularResourceLocation(BitBuffer& msg);
-		void readRegularCVarValue(BitBuffer& msg);
-		void readRegularCVarValue2(BitBuffer& msg);
+		void readRegularDisconnect(sky::BitBuffer& msg);
+		void readRegularEvent(sky::BitBuffer& msg);
+		void readRegularVersion(sky::BitBuffer& msg);
+		void readRegularSetView(sky::BitBuffer& msg);
+		void readRegularSound(sky::BitBuffer& msg);
+		void readRegularTime(sky::BitBuffer& msg);
+		void readRegularPrint(sky::BitBuffer& msg);
+		void readRegularStuffText(sky::BitBuffer& msg);
+		void readRegularAngle(sky::BitBuffer& msg);
+		void readRegularServerInfo(sky::BitBuffer& msg);
+		void readRegularLightStyle(sky::BitBuffer& msg);
+		void readRegularUserInfo(sky::BitBuffer& msg);
+		void readRegularDeltaDescription(sky::BitBuffer& msg);
+		void readRegularClientData(sky::BitBuffer& msg);
+		void readRegularPings(sky::BitBuffer& msg);
+		void readRegularEventReliable(sky::BitBuffer& msg);
+		void readRegularSpawnBaseline(sky::BitBuffer& msg);
+		void readRegularTempEntity(sky::BitBuffer& msg);
+		void readRegularSignonNum(sky::BitBuffer& msg);
+		void readRegularStaticSound(sky::BitBuffer& msg);
+		void readRegularCDTrack(sky::BitBuffer& msg);
+		void readRegularWeaponAnim(sky::BitBuffer& msg);
+		void readRegularDecalName(sky::BitBuffer& msg);
+		void readRegularRoomType(sky::BitBuffer& msg);
+		void readRegularUserMsg(sky::BitBuffer& msg);
+		void readRegularPacketEntities(sky::BitBuffer& msg, bool delta);
+		void readRegularResourceList(sky::BitBuffer& msg);
+		void readRegularMoveVars(sky::BitBuffer& msg);
+		void readRegularResourceRequest(sky::BitBuffer& msg);
+		void readRegularCustomization(sky::BitBuffer& msg);
+		void readFileTxferFailed(sky::BitBuffer& msg);
+		void readRegularHLTV(sky::BitBuffer& msg);
+		void readRegularDirector(sky::BitBuffer& msg);
+		void readRegularVoiceInit(sky::BitBuffer& msg);
+		void readRegularSendExtraInfo(sky::BitBuffer& msg);
+		void readRegularResourceLocation(sky::BitBuffer& msg);
+		void readRegularCVarValue(sky::BitBuffer& msg);
+		void readRegularCVarValue2(sky::BitBuffer& msg);
 
-		void readTempEntityBeamPoints(BitBuffer& msg);
-		void readTempEntityExplosion(BitBuffer& msg);
-		void readTempEntitySmoke(BitBuffer& msg);
-		void readTempEntitySparks(BitBuffer& msg);
-		void readTempEntityGlowSprite(BitBuffer& msg);
-		void readTempEntitySprite(BitBuffer& msg);
-		void readTempEntityBloodSprite(BitBuffer& msg);
+		void readTempEntityBeamPoints(sky::BitBuffer& msg);
+		void readTempEntityExplosion(sky::BitBuffer& msg);
+		void readTempEntitySmoke(sky::BitBuffer& msg);
+		void readTempEntitySparks(sky::BitBuffer& msg);
+		void readTempEntityGlowSprite(sky::BitBuffer& msg);
+		void readTempEntitySprite(sky::BitBuffer& msg);
+		void readTempEntityBloodSprite(sky::BitBuffer& msg);
 
 	private:
-		void writeRegularMessages(BitBuffer& msg);
+		void writeRegularMessages(sky::BitBuffer& msg);
 
-		void writeRegularMove(BitBuffer& msg);
-		void writeRegularDelta(BitBuffer& msg);
-		void writeRegularFileConsistency(BitBuffer& msg);
+		void writeRegularMove(sky::BitBuffer& msg);
+		void writeRegularDelta(sky::BitBuffer& msg);
+		void writeRegularFileConsistency(sky::BitBuffer& msg);
 
 	private:
 		void onConnect(CON_ARGS);

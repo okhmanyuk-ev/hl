@@ -9,8 +9,8 @@ namespace HL
 	class Channel : public Common::FrameSystem::Frameable
 	{
 	public:
-		using MessagesHandler = std::function<void(BitBuffer& msg)>;
-		using FileHandler = std::function<void(const std::string& name, BitBuffer& buf)>;
+		using MessagesHandler = std::function<void(sky::BitBuffer& msg)>;
+		using FileHandler = std::function<void(const std::string& name, sky::BitBuffer& buf)>;
 
 	public:
 		Channel(std::shared_ptr<Network::UdpSocket> socket, MessagesHandler readHandler, MessagesHandler writeHandler, FileHandler fileHandler);
@@ -20,16 +20,16 @@ namespace HL
 
 	public:
 		void transmit();
-		void process(BitBuffer& msg);
-		void addReliableMessage(BitBuffer& msg);
+		void process(sky::BitBuffer& msg);
+		void addReliableMessage(sky::BitBuffer& msg);
 		void fragmentateReliableBuffer(int fragment_size = 512, bool compress = true);
 
 	private:
-		void writeFragments(BitBuffer& msg);
-		void writeReliableMessages(BitBuffer& msg);
-		void readFragments(BitBuffer& msg);
-		void readNormalFragments(BitBuffer& msg);
-		void readFileFragments(BitBuffer& msg, size_t normalSize);
+		void writeFragments(sky::BitBuffer& msg);
+		void writeReliableMessages(sky::BitBuffer& msg);
+		void readFragments(sky::BitBuffer& msg);
+		void readNormalFragments(sky::BitBuffer& msg);
+		void readFileFragments(sky::BitBuffer& msg, size_t normalSize);
 
 	private:
 		MessagesHandler mReadHandler;
@@ -45,7 +45,7 @@ namespace HL
 	private:
 		std::shared_ptr<Network::UdpSocket> mSocket;
 		Network::Address mAddress;
-		
+
 	public:
 		auto getIncomingSequence() const { return mIncomingSequence; }
 		auto getIncomingAcknowledgement() const { return mIncomingAcknowledgement; }
@@ -54,7 +54,7 @@ namespace HL
 
 		auto getOutgoingSequence() const { return mOutgoingSequence; }
 		auto getOutgoingReliable() const { return mOutgoingReliable; }
-		
+
 		auto getLatency() const { return mLatency; }
 
 	private:
@@ -65,7 +65,7 @@ namespace HL
 
 		uint32_t mOutgoingSequence = 0;
 		bool mOutgoingReliable = false;
-		
+
 		uint32_t mReliableSequence = 0;
 
 		Clock::Duration mLatency = Clock::Duration::zero();
@@ -76,7 +76,7 @@ namespace HL
 		int mReliableSent = 0;
 
 		Common::Timer mTimer;
-		std::list<BitBuffer> mReliableMessages;
+		std::list<sky::BitBuffer> mReliableMessages;
 
 	public:
 		const auto& getNormalFragBuffers() const { return mNormalFragBuffers; }
@@ -85,7 +85,7 @@ namespace HL
 	public:
 		struct Fragment
 		{
-			BitBuffer buffer;
+			sky::BitBuffer buffer;
 			bool completed = false;
 		};
 
@@ -101,10 +101,10 @@ namespace HL
 
 		struct OutgoingFragBuffer
 		{
-			std::list<BitBuffer> buffers;
+			std::list<sky::BitBuffer> buffers;
 			int total = 0;
 		};
-		
+
 		std::list<OutgoingFragBuffer> mOutgoingFragBuffers;
 	};
 }

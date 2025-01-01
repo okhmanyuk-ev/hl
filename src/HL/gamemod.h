@@ -7,7 +7,7 @@ namespace HL
 	class GameMod
 	{
 	public:
-		using ReadMessageCallback = std::function<void(BitBuffer&)>;
+		using ReadMessageCallback = std::function<void(sky::BitBuffer&)>;
 		using SendCommandCallback = std::function<void(const std::string&)>;
 
 	public:
@@ -15,7 +15,7 @@ namespace HL
 		virtual bool isPlayerAlive(int index) const;
 
 	public:
-		void readMessage(const std::string& name, BitBuffer& msg);
+		void readMessage(const std::string& name, sky::BitBuffer& msg);
 		void addReadCallback(const std::string& name, ReadMessageCallback callback);
 		void setSendCommandCallback(SendCommandCallback value) { mSendCommandCallback = value; }
 

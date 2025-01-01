@@ -56,24 +56,24 @@ namespace HL
 	public:
 		void clear();
 
-		void add(BitBuffer& msg, const std::string& name, uint32_t fieldCount);
+		void add(sky::BitBuffer& msg, const std::string& name, uint32_t fieldCount);
 
-		void readClientData(BitBuffer& msg, Protocol::ClientData& clientData);
-		void readWeaponData(BitBuffer& msg, Protocol::WeaponData& weaponData);
-		void readEvent(BitBuffer& msg, Protocol::EventArgs& evt);
-		void readEntityNormal(BitBuffer& msg, Protocol::Entity& entity);
-		void readEntityPlayer(BitBuffer& msg, Protocol::Entity& entity);
-		void readEntityCustom(BitBuffer& msg, Protocol::Entity& entity);
-		
-		void writeUserCmd(BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd);
+		void readClientData(sky::BitBuffer& msg, Protocol::ClientData& clientData);
+		void readWeaponData(sky::BitBuffer& msg, Protocol::WeaponData& weaponData);
+		void readEvent(sky::BitBuffer& msg, Protocol::EventArgs& evt);
+		void readEntityNormal(sky::BitBuffer& msg, Protocol::Entity& entity);
+		void readEntityPlayer(sky::BitBuffer& msg, Protocol::Entity& entity);
+		void readEntityCustom(sky::BitBuffer& msg, Protocol::Entity& entity);
 
-	private:
-		void read(BitBuffer& msg, Protocol::Entity& entity, const std::string& table);
-		void read(BitBuffer& msg, Field& field);
+		void writeUserCmd(sky::BitBuffer& msg, const Protocol::UserCmd& newCmd, const Protocol::UserCmd& oldCmd);
 
 	private:
-		ReadFields read(BitBuffer& msg, const Table& table);
-		void write(BitBuffer& msg, const Table& table, const WriteFields& fields);
+		void read(sky::BitBuffer& msg, Protocol::Entity& entity, const std::string& table);
+		void read(sky::BitBuffer& msg, Field& field);
+
+	private:
+		ReadFields read(sky::BitBuffer& msg, const Table& table);
+		void write(sky::BitBuffer& msg, const Table& table, const WriteFields& fields);
 
 	private:
 		std::unordered_map<std::string, Table> mTables;

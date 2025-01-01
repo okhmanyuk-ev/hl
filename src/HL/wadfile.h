@@ -51,16 +51,16 @@ public:
 	void loadFromFile(const std::string& fileName)
 	{
 		auto asset = Platform::Asset(fileName);
-		
+
 		mBuffer.write(asset.getMemory(), asset.getSize());
 		mBuffer.toStart();
 
 		// header
 
 		auto header = mBuffer.read<wadinfo_t>();
-		
+
 		mBuffer.setPosition(header.infotableofs);
-		
+
 		for (int i = 0; i < header.numlumps; i++)
 		{
 			auto lump = mBuffer.read<lumpinfo_t>();
@@ -87,5 +87,5 @@ public:
 
 private:
 	std::vector<lumpinfo_t> mLumps;
-	BitBuffer mBuffer;
+	sky::BitBuffer mBuffer;
 };

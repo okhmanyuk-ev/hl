@@ -98,11 +98,9 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto node = std::make_shared<GenericDrawNode>();
 		node->setStretch(1.0f);
 		node->setDrawCallback([node, start_scr, end_scr, color] {
-			GRAPHICS->draw(nullptr, nullptr, [&](skygfx::utils::MeshBuilder& mesh) {
-				mesh.begin(skygfx::utils::MeshBuilder::Mode::Lines);
-				mesh.vertex(skygfx::utils::Mesh::Vertex{ .pos = { start_scr, 0.0f }, .color = color });
-				mesh.vertex(skygfx::utils::Mesh::Vertex{ .pos = { end_scr, 0.0f }, .color = color });
-				mesh.end();
+			GRAPHICS->draw(nullptr, nullptr, skygfx::utils::MeshBuilder::Mode::Lines, [&](auto vertex) {
+				vertex(skygfx::utils::Mesh::Vertex{ .pos = { start_scr, 0.0f }, .color = color });
+				vertex(skygfx::utils::Mesh::Vertex{ .pos = { end_scr, 0.0f }, .color = color });
 			});
 		});
 		node->runAction(Actions::Collection::Delayed((float)lifetime / 10.0f,
@@ -113,7 +111,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 
 	mClient->setBloodSpriteCallback([this](const glm::vec3& origin) {
 		auto label = std::make_shared<Scene::Label>();
-		label->setText("BLOOD");
+		label->setText(L"BLOOD");
 		label->setFontSize(9.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -131,7 +129,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 
 	mClient->setSparksCallback([this](const glm::vec3& origin) {
 		auto label = std::make_shared<Scene::Label>();
-		label->setText("SPARKS");
+		label->setText(L"SPARKS");
 		label->setFontSize(9.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -151,7 +149,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
-		label->setText(model.value().name);
+		label->setText(sky::to_wstring(model.value().name));
 		label->setFontSize(10.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -171,7 +169,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
-		label->setText(model.value().name);
+		label->setText(sky::to_wstring(model.value().name));
 		label->setFontSize(10.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -191,7 +189,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
-		label->setText(model.value().name);
+		label->setText(sky::to_wstring(model.value().name));
 		label->setFontSize(10.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -211,7 +209,7 @@ GameplayViewNode::GameplayViewNode(std::shared_ptr<BaseClient> client) :
 		auto model = mClient->findModel(model_index);
 
 		auto label = std::make_shared<Scene::Label>();
-		label->setText(model.value().name);
+		label->setText(sky::to_wstring(model.value().name));
 		label->setFontSize(10.0f);
 		label->setPivot(0.5f);
 		label->setPosition(worldToScreen(origin));
@@ -303,7 +301,7 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		auto node = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 		node->setSize(4.0f);
 		node->setPivot(0.5f);
-		node->setPosition(IMSCENE->isFirstCall() ? origin_scr : Common::Helpers::SmoothValue(node->getPosition(), origin_scr));
+		node->setPosition(IMSCENE->isFirstCall() ? origin_scr : sky::ease_towards(node->getPosition(), origin_scr));
 		IMSCENE->dontKillWhileHaveChilds();
 
 		auto body = IMSCENE->spawn<Scene::Rectangle>(*node);
@@ -319,7 +317,7 @@ void GameplayViewNode::drawEntities(Scene::Node& holder)
 		label->setAnchor({ 0.5f, 0.0f });
 		label->setY(-10.0f);
 		label->setFontSize(8.0f);
-		label->setText(getNiceModelName(model.value()));
+		label->setText(sky::to_wstring(getNiceModelName(model.value())));
 		IMSCENE->showAndHideWithScale();
 	}
 }
@@ -397,14 +395,14 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 	auto player = IMSCENE->spawn(holder, fmt::format("player_{}", index));
 	player->setSize(8.0f);
 	player->setPivot(0.5f);
-	player->setPosition(IMSCENE->isFirstCall() ? pos : Common::Helpers::SmoothValue(player->getPosition(), pos));
+	player->setPosition(IMSCENE->isFirstCall() ? pos : sky::ease_towards(player->getPosition(), pos));
 	IMSCENE->dontKillWhileHaveChilds();
 
 	auto body = IMSCENE->spawn<Scene::Circle>(*player);
 	if (angles.has_value())
 	{
 		auto rotation = worldToScreenAngles(angles.value());
-		body->setRotation(IMSCENE->isFirstCall() ? rotation : Common::Helpers::SmoothRotation(body->getRotation(), rotation));
+		body->setRotation(IMSCENE->isFirstCall() ? rotation : sky::ease_towards(body->getRotation(), rotation));
 	}
 	body->setStretch(1.0f);
 	body->setPivot(0.5f);
@@ -430,9 +428,9 @@ void GameplayViewNode::drawPlayer(Scene::Node& holder, int index, const glm::vec
 		auto label = IMSCENE->spawn<Scene::Label>(*player, key);
 		label->setPivot(0.5f);
 		label->setAnchor({ 0.5f, 0.0f });
-		label->setY(IMSCENE->isFirstCall() ? y : Common::Helpers::SmoothValue(label->getY(), y));
+		label->setY(IMSCENE->isFirstCall() ? y : sky::ease_towards(label->getY(), y));
 		label->setFontSize(10.0f);
-		label->setText(text);
+		label->setText(sky::to_wstring(text));
 		IMSCENE->showAndHideWithScale();
 	}
 }

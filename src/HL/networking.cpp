@@ -73,8 +73,8 @@ void Networking::readSplitPacket(Network::Packet& packet)
 
 	// check for completion
 
-	bool completed = std::all_of(sb->frags.begin(), sb->frags.end(), [](const auto& frag) { 
-		return frag.completed; 
+	bool completed = std::all_of(sb->frags.begin(), sb->frags.end(), [](const auto& frag) {
+		return frag.completed;
 	});
 
 	if (completed)
@@ -87,7 +87,7 @@ void Networking::readSplitPacket(Network::Packet& packet)
 
 		for (auto& f : sb->frags)
 		{
-			Common::BufferHelpers::WriteToBuffer(f.buffer, pack.buf);
+			sky::bitbuffer_helpers::WriteToBuffer(f.buffer, pack.buf);
 		}
 
 		pack.buf.toStart();
@@ -112,7 +112,7 @@ void Networking::sendConnectionlessPacket(Network::Packet& packet)
 	pack.adr = packet.adr;
 	pack.buf.write<int32_t>(-1);
 
-	Common::BufferHelpers::WriteToBuffer(packet.buf, pack.buf);
+	sky::bitbuffer_helpers::WriteToBuffer(packet.buf, pack.buf);
 
 	Utils::dlog(Common::Helpers::BytesArrayToNiceString(packet.buf.getMemory(), packet.buf.getSize()));
 
