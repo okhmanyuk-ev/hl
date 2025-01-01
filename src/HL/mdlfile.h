@@ -20,7 +20,7 @@ public:
 
 public:
 	auto getHeader() { return (studiohdr_t*)mBuffer.getMemory(); }
-	
+
 private:
-	BitBuffer mBuffer;
+	sky::BitBuffer mBuffer;
 };
