@@ -2,10 +2,8 @@
 
 using namespace HL;
 
-BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_ptr<skygfx::Texture>> _textures,
-	const glm::mat4& model_matrix) :
-	mTextures(_textures),
-	mModelMatrix(model_matrix)
+BspMapEntity::BspMapEntity(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_ptr<skygfx::Texture>> _textures) :
+	mTextures(_textures)
 {
 	auto& vertices = bspfile.getVertices();
 	auto& edges = bspfile.getEdges();
@@ -117,7 +115,6 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 		model.mesh = &mMesh;
 		model.color_texture = mTextures.contains(tex_id) ? mTextures.at(tex_id).get() : mDefaultTexture.get();
 		model.draw_command = draw_command;
-		model.matrix = mModelMatrix;
 		model.texture_address = skygfx::TextureAddress::Wrap;
 		model.cull_mode = skygfx::CullMode::Back;
 		model.depth_mode = skygfx::ComparisonFunc::LessEqual;
@@ -128,18 +125,29 @@ BspDraw::BspDraw(const BSPFile& bspfile, std::unordered_map<TexId, std::shared_p
 	mMesh.setIndices(indices);
 }
 
-void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,
-	float yaw, float pitch, float fov, const glm::vec3& world_up)
-{
-	auto camera = skygfx::utils::PerspectiveCamera{
-		.yaw = yaw,
-		.pitch = pitch,
-		.position = pos,
-		.world_up = world_up,
-		.fov = fov
-	};
+//void BspDraw::draw(std::shared_ptr<skygfx::RenderTarget> target, const glm::vec3& pos,
+//	float yaw, float pitch, float fov, const glm::vec3& world_up)
+//{
+//	auto camera = skygfx::utils::PerspectiveCamera{
+//		.yaw = yaw,
+//		.pitch = pitch,
+//		.position = pos,
+//		.world_up = world_up,
+//		.fov = fov
+//	};
+//
+//	skygfx::utils::DrawScene(target.get(), camera, mModels, mLights, {
+//		.clear_target = true
+//	});
+//}
+//
 
-	skygfx::utils::DrawScene(target.get(), camera, mModels, mLights, {
-		.clear_target = true
-	});
+void BspMapEntity::provideModels(std::vector<skygfx::utils::Model>& models)
+{
+	Scene::Entity3D::provideModels(models);
+	for (auto model : mModels)
+	{
+		model.matrix = getTransform();
+		models.push_back(model);
+	}
 }

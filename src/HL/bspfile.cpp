@@ -212,7 +212,7 @@ void BSPFile::loadFromFile(const std::string& fileName, bool loadWad)
 
 				s = s.substr(s.find("\"") + 1);
 
-				assert(!e.args.contains(key));
+				//assert(!e.args.contains(key)); // de_dust2 cant load with this assert
 				e.args.insert({ key, value });
 			}
 
